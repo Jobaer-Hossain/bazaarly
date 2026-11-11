@@ -279,6 +279,23 @@
             <!-- Injected via JavaScript -->
           </div>
 
+          <!-- See More / Load More Section -->
+          <div id="see-more-container" class="pt-6 pb-4 text-center space-y-3">
+            <div id="see-more-status" class="text-xs text-slate-500">
+              Showing <span id="see-more-current" class="font-bold text-slate-900">0</span> verified products in view
+            </div>
+            
+            <button id="btn-see-more" onclick="loadMoreProducts()" class="px-8 py-3.5 rounded-2xl bg-white border border-slate-200 hover:border-brand-500 hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-xs transition inline-flex items-center space-x-2 cursor-pointer group">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i>
+              <span>See More Products (+20)</span>
+            </button>
+
+            <div id="all-products-loaded-msg" class="hidden text-xs text-slate-400 font-medium py-2">
+              <i data-lucide="check-circle" class="w-4 h-4 inline-block text-emerald-500 mr-1 align-text-bottom"></i>
+              <span>All products in this department are currently loaded.</span>
+            </div>
+          </div>
+
         </div>
 
       </div>

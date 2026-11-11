@@ -31,7 +31,12 @@ const state = {
   saRoles: [],
   saActiveRoleKey: 'super_admin',
   saTrendChart: null,
-  saGatewaysChart: null
+  saGatewaysChart: null,
+  catalogOffset: 0,
+  catalogLimit: 20,
+  catalogHasMore: true,
+  catalogLoading: false,
+  catalogFilters: {}
 };
 
 // API Helper
@@ -264,30 +269,164 @@ function getCategoryIcon(slug) {
   return 'tag';
 }
 
-async function loadProducts(params = {}) {
+async function loadProducts(params = {}, append = false) {
   try {
-    const q = new URLSearchParams();
-    if (params.search) q.append('search', params.search);
-    if (params.category_slug) q.append('category_slug', params.category_slug);
-    if (params.min_price) q.append('min_price', params.min_price);
-    if (params.max_price) q.append('max_price', params.max_price);
-    if (params.in_stock) q.append('in_stock', 'true');
-    if (params.sort) q.append('sort', params.sort);
-    q.append('limit', params.limit || '120');
+    if (!append) {
+      state.catalogOffset = 0;
+      state.catalogFilters = params;
+      state.catalogHasMore = true;
+      const grid = document.getElementById('products-grid');
+      if (grid) grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 text-xs"><i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-brand-600"></i><span>Loading catalog collection...</span></div>`;
+      lucide.createIcons();
+    }
 
-    const products = await api(`/api/catalog/products?${q.toString()}`);
-    state.products = products || [];
-    renderProductsGrid(state.products);
+    const q = new URLSearchParams();
+    if (state.catalogFilters.search) q.append('search', state.catalogFilters.search);
+    if (state.catalogFilters.category_slug) q.append('category_slug', state.catalogFilters.category_slug);
+    if (state.catalogFilters.min_price) q.append('min_price', state.catalogFilters.min_price);
+    if (state.catalogFilters.max_price) q.append('max_price', state.catalogFilters.max_price);
+    if (state.catalogFilters.in_stock) q.append('in_stock', 'true');
+    if (state.catalogFilters.sort) q.append('sort', state.catalogFilters.sort);
+
+    q.append('limit', state.catalogLimit || 20);
+    q.append('offset', state.catalogOffset || 0);
+
+    const items = await api(`/api/catalog/products?${q.toString()}`) || [];
+
+    if (append) {
+      state.products = state.products.concat(items);
+      appendProductsToGrid(items);
+    } else {
+      state.products = items;
+      renderProductsGrid(state.products);
+    }
+
+    // Determine if more products exist
+    const seeMoreBtn = document.getElementById('btn-see-more');
+    const allLoadedMsg = document.getElementById('all-products-loaded-msg');
+
+    if (items.length < (state.catalogLimit || 20)) {
+      state.catalogHasMore = false;
+      if (seeMoreBtn) seeMoreBtn.classList.add('hidden');
+      if (allLoadedMsg && state.products.length > 0) allLoadedMsg.classList.remove('hidden');
+    } else {
+      state.catalogHasMore = true;
+      if (seeMoreBtn) seeMoreBtn.classList.remove('hidden');
+      if (allLoadedMsg) allLoadedMsg.classList.add('hidden');
+    }
+
+    // Update count badges
+    const countBadge = document.getElementById('products-count-badge');
+    const seeMoreCurrent = document.getElementById('see-more-current');
+    if (countBadge) countBadge.textContent = state.products.length;
+    if (seeMoreCurrent) seeMoreCurrent.textContent = state.products.length;
+
+    lucide.createIcons();
   } catch (err) {
     console.error('Failed to load products:', err);
   }
 }
 
+async function loadMoreProducts() {
+  if (state.catalogLoading || !state.catalogHasMore) return;
+  state.catalogLoading = true;
+
+  const btn = document.getElementById('btn-see-more');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin text-brand-600"></i><span>Loading next 20 items...</span>`;
+    lucide.createIcons();
+  }
+
+  state.catalogOffset += (state.catalogLimit || 20);
+  await loadProducts(state.catalogFilters, true);
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i><span>See More Products (+20)</span>`;
+    lucide.createIcons();
+  }
+  state.catalogLoading = false;
+}
+
+function renderProductCardHtml(p) {
+  const isWishlisted = state.wishlist.includes(p.id);
+  const hasDiscount = p.sale_price && p.sale_price < p.regular_price;
+  const discountPct = hasDiscount ? Math.round(((p.regular_price - p.sale_price) / p.regular_price) * 100) : 0;
+  const priceDisplay = hasDiscount 
+    ? `<span class="text-base font-extrabold text-slate-900">$${p.sale_price.toFixed(2)}</span>
+       <span class="text-xs text-slate-400 line-through">$${p.regular_price.toFixed(2)}</span>`
+    : `<span class="text-base font-extrabold text-slate-900">$${p.regular_price.toFixed(2)}</span>`;
+
+  const imgUrl = p.primary_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+
+  return `
+    <div class="product-card bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between group">
+      
+      <!-- Image & Badges -->
+      <div class="relative bg-slate-100 aspect-square overflow-hidden cursor-pointer" onclick="viewProductDetails('${p.id}')">
+        <img src="${imgUrl}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+        
+        <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+          ${hasDiscount ? `<span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold shadow-xs">-${discountPct}% OFF</span>` : ''}
+          ${p.in_stock ? `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow-xs">IN STOCK</span>` : `<span class="px-2 py-0.5 rounded bg-slate-800 text-white text-[9px] font-bold shadow-xs">OUT OF STOCK</span>`}
+        </div>
+
+        <button onclick="event.stopPropagation(); toggleWishlist('${p.id}')" class="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-white/90 backdrop-blur-xs text-slate-600 hover:text-rose-600 transition shadow-xs">
+          <i data-lucide="heart" class="w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}"></i>
+        </button>
+      </div>
+
+      <!-- Product Details Content -->
+      <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+            <span>${p.brand_name || 'Verified Merchant'}</span>
+            <span class="text-slate-500">${p.category_name || ''}</span>
+          </div>
+          
+          <h4 class="font-bold text-xs text-slate-800 line-clamp-2 hover:text-brand-600 cursor-pointer" onclick="viewProductDetails('${p.id}')">
+            ${p.title}
+          </h4>
+
+          <!-- Rating Stars -->
+          <div class="flex items-center space-x-1 text-amber-500 text-[11px] pt-1">
+            <div class="flex">${renderStarIcons(p.rating_average || 5)}</div>
+            <span class="text-slate-400 text-[10px]">(${p.review_count || 1})</span>
+          </div>
+        </div>
+
+        <!-- Price & Action -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div class="flex flex-col">
+            <div class="flex items-baseline space-x-1.5">
+              ${priceDisplay}
+            </div>
+            <span class="text-[10px] text-slate-400">by ${p.seller_store_name || 'Direct Merchant'}</span>
+          </div>
+
+          <button onclick="quickAddToCart('${p.id}')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition flex items-center space-x-1">
+            <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+            <span>Add</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function appendProductsToGrid(newItems) {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return;
+  const html = newItems.map(p => renderProductCardHtml(p)).join('');
+  grid.insertAdjacentHTML('beforeend', html);
+  lucide.createIcons();
+}
+
 function renderProductsGrid(products) {
   const grid = document.getElementById('products-grid');
-  const countBadge = document.getElementById('products-count-badge');
-  if (countBadge) countBadge.textContent = products.length;
-
   if (!grid) return;
 
   if (products.length === 0) {
@@ -303,73 +442,9 @@ function renderProductsGrid(products) {
     return;
   }
 
-  grid.innerHTML = products.map(p => {
-    const isWishlisted = state.wishlist.includes(p.id);
-    const hasDiscount = p.sale_price && p.sale_price < p.regular_price;
-    const discountPct = hasDiscount ? Math.round(((p.regular_price - p.sale_price) / p.regular_price) * 100) : 0;
-    const priceDisplay = hasDiscount 
-      ? `<span class="text-base font-extrabold text-slate-900">$${p.sale_price.toFixed(2)}</span>
-         <span class="text-xs text-slate-400 line-through">$${p.regular_price.toFixed(2)}</span>`
-      : `<span class="text-base font-extrabold text-slate-900">$${p.regular_price.toFixed(2)}</span>`;
-
-    const imgUrl = p.primary_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
-
-    return `
-      <div class="product-card bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between group">
-        
-        <!-- Image & Badges -->
-        <div class="relative bg-slate-100 aspect-square overflow-hidden cursor-pointer" onclick="viewProductDetails('${p.id}')">
-          <img src="${imgUrl}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-          
-          <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
-            ${hasDiscount ? `<span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold shadow-xs">-${discountPct}% OFF</span>` : ''}
-            ${p.in_stock ? `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow-xs">IN STOCK</span>` : `<span class="px-2 py-0.5 rounded bg-slate-800 text-white text-[9px] font-bold shadow-xs">OUT OF STOCK</span>`}
-          </div>
-
-          <button onclick="event.stopPropagation(); toggleWishlist('${p.id}')" class="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-white/90 backdrop-blur-xs text-slate-600 hover:text-rose-600 transition shadow-xs">
-            <i data-lucide="heart" class="w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}"></i>
-          </button>
-        </div>
-
-        <!-- Product Details Content -->
-        <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
-          <div class="space-y-1">
-            <div class="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-              <span>${p.brand_name || 'Verified Merchant'}</span>
-              <span class="text-slate-500">${p.category_name || ''}</span>
-            </div>
-            
-            <h4 class="font-bold text-xs text-slate-800 line-clamp-2 hover:text-brand-600 cursor-pointer" onclick="viewProductDetails('${p.id}')">
-              ${p.title}
-            </h4>
-
-            <!-- Rating Stars -->
-            <div class="flex items-center space-x-1 text-amber-500 text-[11px] pt-1">
-              <div class="flex">${renderStarIcons(p.rating_average || 5)}</div>
-              <span class="text-slate-400 text-[10px]">(${p.review_count || 1})</span>
-            </div>
-          </div>
-
-          <!-- Price & Action -->
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div class="flex flex-col">
-              <div class="flex items-baseline space-x-1.5">
-                ${priceDisplay}
-              </div>
-              <span class="text-[10px] text-slate-400">by ${p.seller_store_name || 'Direct Merchant'}</span>
-            </div>
-
-            <button onclick="quickAddToCart('${p.id}')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition flex items-center space-x-1">
-              <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
-              <span>Add</span>
-            </button>
-          </div>
-
-        </div>
-
-      </div>
-    `;
-  }).join('');
+  grid.innerHTML = products.map(p => renderProductCardHtml(p)).join('');
+  lucide.createIcons();
+}
 
   lucide.createIcons();
 }
