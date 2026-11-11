@@ -39,6 +39,27 @@ const state = {
   catalogFilters: {}
 };
 
+// Bangla Currency & Numeral Formatter (BDT ৳)
+function formatPrice(amount) {
+  if (amount === null || amount === undefined || isNaN(amount)) return '৳০.০০';
+  const n = Number(amount);
+  const isNegative = n < 0;
+  const absVal = Math.abs(n).toFixed(2);
+  const [intPart, decPart] = absVal.split('.');
+
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fullStr = `${formattedInt}.${decPart}`;
+
+  const banglaDigits = {
+    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
+    '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯',
+    '.': '.', ',': ','
+  };
+
+  const banglaNum = fullStr.split('').map(c => banglaDigits[c] || c).join('');
+  return (isNegative ? '-৳' : '৳') + banglaNum;
+}
+
 // API Helper
 async function api(endpoint, options = {}) {
   const headers = {
@@ -354,9 +375,9 @@ function renderProductCardHtml(p) {
   const hasDiscount = p.sale_price && p.sale_price < p.regular_price;
   const discountPct = hasDiscount ? Math.round(((p.regular_price - p.sale_price) / p.regular_price) * 100) : 0;
   const priceDisplay = hasDiscount 
-    ? `<span class="text-base font-extrabold text-slate-900">$${p.sale_price.toFixed(2)}</span>
-       <span class="text-xs text-slate-400 line-through">$${p.regular_price.toFixed(2)}</span>`
-    : `<span class="text-base font-extrabold text-slate-900">$${p.regular_price.toFixed(2)}</span>`;
+    ? `<span class="text-base font-extrabold text-slate-900">${formatPrice(p.sale_price)}</span>
+       <span class="text-xs text-slate-400 line-through">${formatPrice(p.regular_price)}</span>`
+    : `<span class="text-base font-extrabold text-slate-900">${formatPrice(p.regular_price)}</span>`;
 
   const imgUrl = p.primary_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
 
@@ -572,8 +593,8 @@ async function viewProductDetails(productId) {
         <!-- Pricing Bar -->
         <div class="space-y-1">
           <div class="flex items-baseline space-x-3">
-            <span class="text-3xl font-extrabold text-slate-900" id="detail-current-price">$${currentPrice.toFixed(2)}</span>
-            ${hasDiscount ? `<span class="text-base text-slate-400 line-through">$${product.regular_price.toFixed(2)}</span>` : ''}
+            <span class="text-3xl font-extrabold text-slate-900" id="detail-current-price">${formatPrice(currentPrice)}</span>
+            ${hasDiscount ? `<span class="text-base text-slate-400 line-through">${formatPrice(product.regular_price)}</span>` : ''}
           </div>
           <div class="text-xs ${stockAvailable > 5 ? 'text-emerald-600' : 'text-rose-600'} font-semibold flex items-center space-x-1" id="detail-stock-badge">
             <i data-lucide="${stockAvailable > 0 ? 'check-circle' : 'alert-circle'}" class="w-3.5 h-3.5"></i>
@@ -588,7 +609,7 @@ async function viewProductDetails(productId) {
             <div class="flex flex-wrap gap-2" id="detail-variants-container">
               ${product.variants.map((v, i) => `
                 <button onclick="selectProductVariant('${v.id}')" id="variant-btn-${v.id}" class="variant-pill px-3 py-2 rounded-xl border text-xs font-semibold transition ${i === 0 ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-xs' : 'border-slate-200 text-slate-700 hover:border-slate-300'}">
-                  ${v.variant_name} — $${v.price.toFixed(2)}
+                  ${v.variant_name} — ${formatPrice(v.price)}
                 </button>
               `).join('')}
             </div>
@@ -668,7 +689,7 @@ function selectProductVariant(variantId) {
 
   // Update Price & Stock
   const priceEl = document.getElementById('detail-current-price');
-  if (priceEl) priceEl.textContent = `$${variant.price.toFixed(2)}`;
+  if (priceEl) priceEl.textContent = formatPrice(variant.price);
 
   const stockBadge = document.getElementById('detail-stock-badge');
   if (stockBadge) {
@@ -869,7 +890,7 @@ function renderCartDrawer() {
           <div class="flex-1 min-w-0">
             <h5 class="text-xs font-bold text-slate-800 truncate">${item.product?.title || 'Product'}</h5>
             ${variantText}
-            <div class="text-xs font-extrabold text-slate-900 mt-1">$${item.unit_price.toFixed(2)}</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-1">${formatPrice(item.unit_price)}</div>
           </div>
           <div class="flex flex-col items-end space-y-2">
             <button onclick="removeCartItem('${item.id}')" class="text-slate-400 hover:text-rose-600 transition" title="Remove item">
@@ -886,10 +907,10 @@ function renderCartDrawer() {
     }).join('');
   }
 
-  if (subtotalEl) subtotalEl.textContent = `$${state.cart.subtotal.toFixed(2)}`;
-  if (shippingEl) shippingEl.textContent = state.cart.shipping_fee === 0 ? 'FREE' : `$${state.cart.shipping_fee.toFixed(2)}`;
-  if (discountEl) discountEl.textContent = `-$${state.cart.discount_amount.toFixed(2)}`;
-  if (grandTotalEl) grandTotalEl.textContent = `$${state.cart.grand_total.toFixed(2)}`;
+  if (subtotalEl) subtotalEl.textContent = formatPrice(state.cart.subtotal);
+  if (shippingEl) shippingEl.textContent = state.cart.shipping_fee === 0 ? 'FREE' : formatPrice(state.cart.shipping_fee);
+  if (discountEl) discountEl.textContent = `-${formatPrice(state.cart.discount_amount)}`;
+  if (grandTotalEl) grandTotalEl.textContent = formatPrice(state.cart.grand_total);
 
   if (discountRow) {
     if (state.cart.discount_amount > 0) {
@@ -974,7 +995,7 @@ function openCheckoutModal() {
   }
 
   const finalAmount = document.getElementById('checkout-final-amount');
-  if (finalAmount) finalAmount.textContent = `$${state.cart.grand_total.toFixed(2)}`;
+  if (finalAmount) finalAmount.textContent = formatPrice(state.cart.grand_total);
 
   const modal = document.getElementById('modal-checkout');
   if (modal) modal.classList.remove('hidden');
@@ -1035,7 +1056,7 @@ async function submitCheckoutOrder(e) {
     // Populate order success modal
     document.getElementById('success-order-number').textContent = orderResult.order_number;
     document.getElementById('success-tracking-number').textContent = orderResult.tracking_number;
-    document.getElementById('success-total-charged').textContent = `$${orderResult.total_amount.toFixed(2)} (${orderResult.payment_method.toUpperCase()})`;
+    document.getElementById('success-total-charged').textContent = `${formatPrice(orderResult.total_amount)} (${orderResult.payment_method.toUpperCase()})`;
 
     const successModal = document.getElementById('modal-order-success');
     if (successModal) successModal.classList.remove('hidden');
@@ -1145,7 +1166,7 @@ async function loadCustomerOrders() {
                   ${item.variant_name ? `<span class="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-mono">${item.variant_name}</span>` : ''}
                   <span class="text-slate-400 font-mono">× ${item.quantity}</span>
                 </div>
-                <span class="font-extrabold text-slate-900">$${item.total_price.toFixed(2)}</span>
+                <span class="font-extrabold text-slate-900">${formatPrice(item.total_price)}</span>
               </div>
             `).join('')}
           </div>
@@ -1154,7 +1175,7 @@ async function loadCustomerOrders() {
           <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
             <span class="text-slate-500">Payment Method: <strong class="text-slate-800 uppercase font-mono">${ord.payment_method}</strong></span>
             <div class="text-sm font-extrabold text-slate-900">
-              Total: <span class="text-brand-600">$${ord.total_amount.toFixed(2)}</span>
+              Total: <span class="text-brand-600">${formatPrice(ord.total_amount)}</span>
             </div>
           </div>
 
@@ -1196,8 +1217,8 @@ async function loadSellerDashboard() {
     const pending = data.metrics?.pending_fulfillment || data.metrics?.pending_orders || 0;
     const lowStock = data.metrics?.low_stock_count || 0;
 
-    if (document.getElementById('seller-kpi-revenue')) document.getElementById('seller-kpi-revenue').textContent = `$${rev.toFixed(2)}`;
-    if (document.getElementById('seller-kpi-balance')) document.getElementById('seller-kpi-balance').textContent = `$${bal.toFixed(2)}`;
+    if (document.getElementById('seller-kpi-revenue')) document.getElementById('seller-kpi-revenue').textContent = formatPrice(rev);
+    if (document.getElementById('seller-kpi-balance')) document.getElementById('seller-kpi-balance').textContent = formatPrice(bal);
     if (document.getElementById('seller-kpi-pending-orders')) document.getElementById('seller-kpi-pending-orders').textContent = pending;
     if (document.getElementById('seller-kpi-low-stock')) document.getElementById('seller-kpi-low-stock').textContent = lowStock;
 
@@ -1285,7 +1306,7 @@ async function loadSellerOrders() {
         <td class="py-3 px-3 text-slate-500 font-mono">${new Date(so.created_at).toLocaleDateString()}</td>
         <td class="py-3 px-3 font-medium text-slate-800">${so.customer_name || 'Verified Customer'}</td>
         <td class="py-3 px-3">${so.items?.length || 1} items</td>
-        <td class="py-3 px-3 text-right font-extrabold text-slate-900">$${earnings.toFixed(2)}</td>
+        <td class="py-3 px-3 text-right font-extrabold text-slate-900">${formatPrice(earnings)}</td>
         <td class="py-3 px-3">${getStatusBadge(so.status)}</td>
         <td class="py-3 px-3 text-center">
           <select onchange="updateSellerOrderStatus('${so.id}', this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 text-xs focus:outline-none focus:border-brand-500">
@@ -1335,8 +1356,8 @@ async function loadSellerProducts() {
           <span class="truncate max-w-xs">${p.title}</span>
         </td>
         <td class="py-3 px-3 font-mono text-slate-500">${p.sku}</td>
-        <td class="py-3 px-3 text-right text-slate-400 line-through">$${p.regular_price.toFixed(2)}</td>
-        <td class="py-3 px-3 text-right font-extrabold text-slate-900">$${(p.sale_price || p.regular_price).toFixed(2)}</td>
+        <td class="py-3 px-3 text-right text-slate-400 line-through">${formatPrice(p.regular_price)}</td>
+        <td class="py-3 px-3 text-right font-extrabold text-slate-900">${formatPrice(p.sale_price || p.regular_price)}</td>
         <td class="py-3 px-3 text-center font-bold ${p.stock_quantity < 5 ? 'text-rose-600' : 'text-slate-700'}">${p.stock_quantity}</td>
         <td class="py-3 px-3 text-center">
           <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'}">
@@ -1477,8 +1498,8 @@ async function loadAdminDashboard() {
     const metrics = await api('/api/admin/metrics');
     if (!metrics) return;
 
-    document.getElementById('adm-kpi-gmv').textContent = `$${metrics.gross_merchandise_value.toFixed(2)}`;
-    document.getElementById('adm-kpi-commission').textContent = `$${metrics.platform_commission.toFixed(2)}`;
+    document.getElementById('adm-kpi-gmv').textContent = formatPrice(metrics.gross_merchandise_value);
+    document.getElementById('adm-kpi-commission').textContent = formatPrice(metrics.platform_commission);
     document.getElementById('adm-kpi-sellers').textContent = metrics.active_sellers_count;
     document.getElementById('adm-kpi-pending-approvals').textContent = metrics.pending_seller_count;
 
@@ -1518,7 +1539,7 @@ async function loadAdminDashboard() {
           <td class="py-3 px-4 font-bold text-slate-800">${p.title}</td>
           <td class="py-3 px-3 text-slate-600">${p.seller_store_name || 'Merchant'}</td>
           <td class="py-3 px-3 text-slate-500">${p.category_name || 'Category'}</td>
-          <td class="py-3 px-3 text-right font-extrabold text-slate-900">$${p.regular_price.toFixed(2)}</td>
+          <td class="py-3 px-3 text-right font-extrabold text-slate-900">${formatPrice(p.regular_price)}</td>
           <td class="py-3 px-3 text-center">
             <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700'}">
               ${p.status.toUpperCase()}
@@ -1542,7 +1563,7 @@ async function loadAdminDashboard() {
           <td class="py-3 px-4 font-mono font-bold text-slate-900">#${o.order_number}</td>
           <td class="py-3 px-3 text-slate-700">${o.customer_name || 'Customer'}</td>
           <td class="py-3 px-3 text-slate-500 font-mono">${new Date(o.created_at).toLocaleDateString()}</td>
-          <td class="py-3 px-3 text-right font-extrabold text-slate-900">$${o.total_amount.toFixed(2)}</td>
+          <td class="py-3 px-3 text-right font-extrabold text-slate-900">${formatPrice(o.total_amount)}</td>
           <td class="py-3 px-3 uppercase font-mono text-[11px] text-slate-600">${o.payment_method}</td>
           <td class="py-3 px-3">${getStatusBadge(o.status)}</td>
           <td class="py-3 px-3 text-center">
@@ -1659,10 +1680,10 @@ async function loadSuperAdminDashboard() {
     const totalUsers = parseInt(f.total_registered_users || 0);
     const verifiedMerchants = parseInt(f.verified_merchants || 0);
 
-    document.getElementById('sa-kpi-gmv').textContent = `$${gmv.toFixed(2)}`;
-    document.getElementById('sa-kpi-commission').textContent = `$${comm.toFixed(2)}`;
-    document.getElementById('sa-kpi-payouts').textContent = `$${completedPayouts.toFixed(2)}`;
-    document.getElementById('sa-kpi-pending-payouts').textContent = `$${pendingPayouts.toFixed(2)}`;
+    document.getElementById('sa-kpi-gmv').textContent = formatPrice(gmv);
+    document.getElementById('sa-kpi-commission').textContent = formatPrice(comm);
+    document.getElementById('sa-kpi-payouts').textContent = formatPrice(completedPayouts);
+    document.getElementById('sa-kpi-pending-payouts').textContent = formatPrice(pendingPayouts);
     document.getElementById('sa-kpi-total-users').textContent = `${totalUsers}`;
     document.getElementById('sa-kpi-users-desc').textContent = `${f.total_customers || 0} Customers • ${verifiedMerchants} Stores • ${f.total_administrators || 0} Admins`;
 
@@ -1786,7 +1807,7 @@ function initSuperAdminCharts(monthlyTrend, gatewaysVolume) {
             <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${providerMap[p]?.color || '#94a3b8'}"></span>
             <span>${providerMap[p]?.label || p.toUpperCase()}</span>
           </div>
-          <span class="font-bold text-slate-800">$${(volumes[i] || 0).toFixed(2)}</span>
+          <span class="font-bold text-slate-800">${formatPrice(volumes[i] || 0)}</span>
         </div>
       `).join('');
     }
@@ -1842,7 +1863,7 @@ function renderSuperAdminUsersTable(users) {
       : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">PENDING</span>`;
 
     const storeOrOrders = u.role === 'seller'
-      ? `<div class="font-bold text-slate-800">${u.store_name || 'Merchant'}</div><div class="text-[10px] text-slate-400 font-mono">Sales: $${(u.total_sales || 0).toFixed(2)}</div>`
+      ? `<div class="font-bold text-slate-800">${u.store_name || 'Merchant'}</div><div class="text-[10px] text-slate-400 font-mono">Sales: ${formatPrice(u.total_sales || 0)}</div>`
       : `<div class="text-slate-600">${u.customer_orders_count || 0} purchases placed</div>`;
 
     return `
@@ -2139,7 +2160,7 @@ async function loadSuperAdminPayouts() {
           <div class="flex items-center space-x-4">
             <div class="text-right">
               <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Disbursement Amount</span>
-              <span class="text-xl font-extrabold text-slate-900 font-mono">$${p.amount.toFixed(2)}</span>
+              <span class="text-xl font-extrabold text-slate-900 font-mono">${formatPrice(p.amount)}</span>
             </div>
 
             ${isPending ? `
@@ -2166,7 +2187,7 @@ async function loadSuperAdminPayouts() {
 function openSettlePayoutModal(payoutId, amount, storeName) {
   document.getElementById('sa-settle-payout-id').value = payoutId;
   document.getElementById('sa-settle-store-name').textContent = storeName;
-  document.getElementById('sa-settle-amount').textContent = `$${amount.toFixed(2)}`;
+  document.getElementById('sa-settle-amount').textContent = formatPrice(amount);
   document.getElementById('sa-settle-ref').value = `FED-WIRE-${Date.now().toString().slice(-8)}`;
   document.getElementById('modal-sa-settle-payout')?.classList.remove('hidden');
 }
@@ -2470,8 +2491,8 @@ async function renderPrintableInvoice(orderId) {
                 ${item.variant_name ? `<span class="text-[10px] text-brand-600 block font-mono">${item.variant_name}</span>` : ''}
               </td>
               <td class="py-2 px-3 text-center font-mono">${item.quantity}</td>
-              <td class="py-2 px-3 text-right font-mono">$${item.unit_price.toFixed(2)}</td>
-              <td class="py-2 px-3 text-right font-mono font-bold">$${item.total_price.toFixed(2)}</td>
+              <td class="py-2 px-3 text-right font-mono">${formatPrice(item.unit_price)}</td>
+              <td class="py-2 px-3 text-right font-mono font-bold">${formatPrice(item.total_price)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -2481,25 +2502,25 @@ async function renderPrintableInvoice(orderId) {
       <div class="border-t border-slate-200 pt-3 flex flex-col items-end space-y-1 text-xs">
         <div class="flex justify-between w-48 text-slate-600">
           <span>Subtotal:</span>
-          <span class="font-mono font-semibold">$${order.subtotal.toFixed(2)}</span>
+          <span class="font-mono font-semibold">${formatPrice(order.subtotal)}</span>
         </div>
         ${order.discount_amount > 0 ? `
           <div class="flex justify-between w-48 text-emerald-600">
             <span>Coupon Discount:</span>
-            <span class="font-mono font-semibold">-$${order.discount_amount.toFixed(2)}</span>
+            <span class="font-mono font-semibold">-${formatPrice(order.discount_amount)}</span>
           </div>
         ` : ''}
         <div class="flex justify-between w-48 text-slate-600">
           <span>Shipping:</span>
-          <span class="font-mono font-semibold">$${order.shipping_fee.toFixed(2)}</span>
+          <span class="font-mono font-semibold">${formatPrice(order.shipping_fee)}</span>
         </div>
         <div class="flex justify-between w-48 text-slate-600">
           <span>Sales Tax:</span>
-          <span class="font-mono font-semibold">$${order.tax_amount.toFixed(2)}</span>
+          <span class="font-mono font-semibold">${formatPrice(order.tax_amount)}</span>
         </div>
         <div class="flex justify-between w-48 text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-1">
           <span>Amount Paid:</span>
-          <span class="text-brand-600 font-mono">$${order.total_amount.toFixed(2)}</span>
+          <span class="text-brand-600 font-mono">${formatPrice(order.total_amount)}</span>
         </div>
       </div>
 

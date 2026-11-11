@@ -48,7 +48,7 @@
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
       <div class="flex items-center space-x-2">
         <span class="px-2 py-0.5 rounded bg-brand-600 text-white font-semibold text-[10px] uppercase">Free Shipping</span>
-        <span>Complimentary delivery on all orders over $100. Use coupon <strong class="text-white">WELCOME10</strong> for 10% off.</span>
+        <span>Complimentary delivery on all orders over ৳১,০০০. Use coupon <strong class="text-white">WELCOME10</strong> for 10% off.</span>
       </div>
       <div class="flex items-center space-x-4 text-[11px] text-slate-400">
         <span>24/7 Merchant Support</span>
@@ -208,11 +208,11 @@
 
           <!-- Price Range Filter -->
           <div class="space-y-2 pt-2 border-t border-slate-100">
-            <span class="text-xs font-semibold text-slate-700 block">Price Range ($)</span>
+            <span class="text-xs font-semibold text-slate-700 block">Price Range (৳)</span>
             <div class="flex items-center space-x-2 text-xs">
-              <input type="number" id="filter-min-price" placeholder="Min" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
+              <input type="number" id="filter-min-price" placeholder="Min ৳" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
               <span class="text-slate-400">-</span>
-              <input type="number" id="filter-max-price" placeholder="Max" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
+              <input type="number" id="filter-max-price" placeholder="Max ৳" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
             </div>
             <button onclick="applyFilters()" class="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
               Apply Price
@@ -394,12 +394,12 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Revenue</span>
-          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="seller-kpi-revenue">$0.00</div>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="seller-kpi-revenue">৳০.০০</div>
           <span class="text-[11px] text-slate-400 mt-1 block">Net sales after commissions</span>
         </div>
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Balance</span>
-          <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="seller-kpi-balance">$0.00</div>
+          <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="seller-kpi-balance">৳০.০০</div>
           <span class="text-[11px] text-slate-400 mt-1 block">Ready for bank withdrawal</span>
         </div>
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
@@ -421,7 +421,7 @@
             <h3 class="text-sm font-bold text-slate-900">Revenue Performance</h3>
             <p class="text-xs text-slate-500">Historical monthly sales earnings</p>
           </div>
-          <span class="text-xs text-slate-400 font-mono">USD ($)</span>
+          <span class="text-xs text-slate-400 font-mono">BDT (৳)</span>
         </div>
         <div class="h-60">
           <canvas id="seller-revenue-chart"></canvas>
@@ -510,11 +510,11 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Merchandise Value</span>
-          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="adm-kpi-gmv">$0.00</div>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="adm-kpi-gmv">৳০.০০</div>
         </div>
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Platform Commission</span>
-          <div class="text-3xl font-extrabold text-brand-600 mt-2" id="adm-kpi-commission">$0.00</div>
+          <div class="text-3xl font-extrabold text-brand-600 mt-2" id="adm-kpi-commission">৳০.০০</div>
         </div>
         <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Merchants</span>
@@ -651,22 +651,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Merchandise Value</span>
-            <div class="text-2xl font-extrabold text-slate-900 mt-2" id="sa-kpi-gmv">$0.00</div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2" id="sa-kpi-gmv">৳০.০০</div>
             <span class="text-[11px] text-emerald-600 font-semibold mt-1 block">Platform sales volume</span>
           </div>
           <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Platform Commission</span>
-            <div class="text-2xl font-extrabold text-brand-600 mt-2" id="sa-kpi-commission">$0.00</div>
+            <div class="text-2xl font-extrabold text-brand-600 mt-2" id="sa-kpi-commission">৳০.০০</div>
             <span class="text-[11px] text-slate-400 mt-1 block">Direct retained earnings</span>
           </div>
           <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Completed Payouts</span>
-            <div class="text-2xl font-extrabold text-emerald-600 mt-2" id="sa-kpi-payouts">$0.00</div>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-2" id="sa-kpi-payouts">৳০.০০</div>
             <span class="text-[11px] text-slate-400 mt-1 block">Settled to merchant banks</span>
           </div>
           <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Settlements</span>
-            <div class="text-2xl font-extrabold text-amber-600 mt-2" id="sa-kpi-pending-payouts">$0.00</div>
+            <div class="text-2xl font-extrabold text-amber-600 mt-2" id="sa-kpi-pending-payouts">৳০.০০</div>
             <span class="text-[11px] text-amber-700 font-semibold mt-1 block">Awaiting wire approval</span>
           </div>
           <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
@@ -899,19 +899,19 @@
                 <input type="number" step="0.1" id="cfg-tax" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
               </div>
               <div>
-                <label class="block text-slate-700 font-semibold mb-1">Flat Shipping Fee ($)</label>
+                <label class="block text-slate-700 font-semibold mb-1">Flat Shipping Fee (৳)</label>
                 <input type="number" step="0.01" id="cfg-shipping" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
               </div>
               <div>
-                <label class="block text-slate-700 font-semibold mb-1">Free Shipping Minimum ($)</label>
+                <label class="block text-slate-700 font-semibold mb-1">Free Shipping Minimum (৳)</label>
                 <input type="number" step="0.01" id="cfg-free-ship-threshold" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
               </div>
               <div>
                 <label class="block text-slate-700 font-semibold mb-1">Primary Marketplace Currency</label>
                 <select id="cfg-currency" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+                  <option value="BDT" selected>BDT — Bangladeshi Taka (৳)</option>
                   <option value="USD">USD — United States Dollar ($)</option>
                   <option value="EUR">EUR — Euro (€)</option>
-                  <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
                   <option value="GBP">GBP — British Pound (£)</option>
                 </select>
               </div>
@@ -1167,19 +1167,19 @@
         <div class="space-y-1 text-xs text-slate-600">
           <div class="flex justify-between">
             <span>Subtotal:</span>
-            <span id="cart-subtotal" class="font-semibold text-slate-900">$0.00</span>
+            <span id="cart-subtotal" class="font-semibold text-slate-900">৳০.০০</span>
           </div>
           <div class="flex justify-between" id="cart-discount-row">
             <span>Coupon Discount:</span>
-            <span id="cart-discount" class="font-semibold text-emerald-600">-$0.00</span>
+            <span id="cart-discount" class="font-semibold text-emerald-600">-৳০.০০</span>
           </div>
           <div class="flex justify-between">
             <span>Estimated Shipping:</span>
-            <span id="cart-shipping" class="font-semibold text-slate-900">$0.00</span>
+            <span id="cart-shipping" class="font-semibold text-slate-900">৳০.০০</span>
           </div>
           <div class="flex justify-between border-t border-slate-200 pt-2 text-sm font-extrabold text-slate-900">
             <span>Total Payable:</span>
-            <span id="cart-grand-total" class="text-brand-600">$0.00</span>
+            <span id="cart-grand-total" class="text-brand-600">৳০.০০</span>
           </div>
         </div>
 
@@ -1286,7 +1286,7 @@
         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
           <div class="flex justify-between text-xs">
             <span class="text-slate-600">Final Order Amount:</span>
-            <span id="checkout-final-amount" class="text-base font-extrabold text-brand-600">$0.00</span>
+            <span id="checkout-final-amount" class="text-base font-extrabold text-brand-600">৳০.০০</span>
           </div>
           <p class="text-[11px] text-slate-500">By placing this order you agree to Bazaarly's standard multi-vendor buyer protection terms.</p>
         </div>
@@ -1418,12 +1418,12 @@
 
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block text-slate-700 font-medium mb-1">Regular Price ($)</label>
-            <input type="number" step="0.01" id="new-prod-regular-price" required placeholder="149.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+            <label class="block text-slate-700 font-medium mb-1">Regular Price (৳)</label>
+            <input type="number" step="0.01" id="new-prod-regular-price" required placeholder="1490.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
           </div>
           <div>
-            <label class="block text-slate-700 font-medium mb-1">Sale Price ($)</label>
-            <input type="number" step="0.01" id="new-prod-sale-price" required placeholder="119.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+            <label class="block text-slate-700 font-medium mb-1">Sale Price (৳)</label>
+            <input type="number" step="0.01" id="new-prod-sale-price" required placeholder="1190.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
           </div>
           <div>
             <label class="block text-slate-700 font-medium mb-1">Initial Stock Units</label>
@@ -1463,8 +1463,8 @@
 
       <form id="payout-form" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-700 font-medium mb-1">Withdrawal Amount ($)</label>
-          <input type="number" step="0.01" id="payout-amount" required placeholder="e.g. 500.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          <label class="block text-slate-700 font-medium mb-1">Withdrawal Amount (৳)</label>
+          <input type="number" step="0.01" id="payout-amount" required placeholder="e.g. 5000.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
         </div>
         <div>
           <label class="block text-slate-700 font-medium mb-1">Bank Account & Routing Info</label>
@@ -1718,6 +1718,6 @@
     </div>
   </footer>
 
-  <script src="/static/app.js?v=2.0.2"></script>
+  <script src="/static/app.js?v=2.0.3"></script>
 </body>
 </html>
