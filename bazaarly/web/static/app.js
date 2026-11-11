@@ -273,6 +273,7 @@ async function loadProducts(params = {}) {
     if (params.max_price) q.append('max_price', params.max_price);
     if (params.in_stock) q.append('in_stock', 'true');
     if (params.sort) q.append('sort', params.sort);
+    q.append('limit', params.limit || '120');
 
     const products = await api(`/api/catalog/products?${q.toString()}`);
     state.products = products || [];

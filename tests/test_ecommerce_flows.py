@@ -4,6 +4,7 @@ Validates authentication, catalog, cart, multi-vendor order splitting, atomic st
 """
 
 import unittest
+import uuid
 from fastapi.testclient import TestClient
 from bazaarly.api.server import app
 from bazaarly.db.database import init_schema, seed_data, query_db
@@ -283,8 +284,9 @@ class TestBazaarlyEcommercePlatform(unittest.TestCase):
         roles = roles_res.json()
         self.assertTrue(any(r["role_key"] == "super_admin" for r in roles))
 
+        unique_key = f"auditor_{uuid.uuid4().hex[:6]}"
         new_role_res = self.client.post("/api/super-admin/roles", json={
-            "role_key": "catalog_auditor",
+            "role_key": unique_key,
             "role_name": "Catalog Quality Auditor",
             "description": "Reviews media and specifications compliance",
             "permissions": {
@@ -304,9 +306,16 @@ class TestBazaarlyEcommercePlatform(unittest.TestCase):
         payouts = payouts_res.json()
         self.assertGreaterEqual(len(payouts), 1)
 
-        first_payout = payouts[0]
-        settle_res = self.client.post(f"/api/super-admin/payouts/{first_payout['id']}/settle", json={
-            "transaction_ref": "WIRE-TEST-20261111-001",
+        pending_payout = next((p for p in payouts if p["status"] == "requested"), None)
+        if not pending_payout:
+            p_id = f"payo-test-{uuid.uuid4().hex[:6]}"
+            query_db("INSERT INTO seller_payouts (id, seller_id, amount, status, bank_details) VALUES (?, 'sel-nexus-tech', 500.0, 'requested', 'Test Bank');", (p_id,))
+            p_target_id = p_id
+        else:
+            p_target_id = pending_payout["id"]
+
+        settle_res = self.client.post(f"/api/super-admin/payouts/{p_target_id}/settle", json={
+            "transaction_ref": f"WIRE-{uuid.uuid4().hex[:8]}",
             "notes": "Settled via automated test suite"
         }, headers=headers)
         self.assertEqual(settle_res.status_code, 200)
