@@ -343,7 +343,7 @@ async function loadMoreProducts() {
 
   if (btn) {
     btn.disabled = false;
-    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i><span>See More Products</span>`;
+    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i><span>See More</span>`;
     lucide.createIcons();
   }
   state.catalogLoading = false;

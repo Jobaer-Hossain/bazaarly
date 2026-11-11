@@ -62,6 +62,17 @@ def api_status():
     }
 
 
+# Disable caching for static SPA assets to ensure instant live reloads
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static") or request.url.path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 # Static Files & SPA Route
 STATIC_DIR = Path(__file__).resolve().parent.parent / "web" / "static"
 if STATIC_DIR.exists():
@@ -69,4 +80,8 @@ if STATIC_DIR.exists():
 
     @app.api_route("/", methods=["GET", "HEAD"])
     def serve_frontend_index():
-        return FileResponse(str(STATIC_DIR / "index.html"))
+        response = FileResponse(str(STATIC_DIR / "index.html"))
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
