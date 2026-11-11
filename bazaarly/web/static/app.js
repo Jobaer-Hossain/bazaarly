@@ -446,9 +446,6 @@ function renderProductsGrid(products) {
   lucide.createIcons();
 }
 
-  lucide.createIcons();
-}
-
 function renderStarIcons(rating) {
   const full = Math.floor(rating);
   let stars = '';
