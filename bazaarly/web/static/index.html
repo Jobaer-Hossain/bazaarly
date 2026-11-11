@@ -86,8 +86,8 @@
         
         <!-- Role Switcher Pill -->
         <div class="relative">
-          <button id="btn-role-switcher-toggle" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition" title="Switch Portal">
-            <i data-lucide="user-check" class="w-3.5 h-3.5 text-brand-600"></i>
+          <button id="btn-role-switcher-toggle" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition" title="Account / Switch Portal">
+            <i id="active-role-icon" data-lucide="user-check" class="w-3.5 h-3.5 text-brand-600"></i>
             <span id="active-role-label">Customer</span>
             <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
           </button>
@@ -113,6 +113,16 @@
               <span class="font-medium">Super Admin Portal</span>
               <span class="text-[10px] text-slate-400">Executive</span>
             </button>
+            <div class="border-t border-slate-100 mt-1 pt-1">
+              <button onclick="openAuthModal('login')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center space-x-2 text-slate-700">
+                <i data-lucide="log-in" class="w-3.5 h-3.5 text-brand-600"></i>
+                <span class="font-medium">Sign In / Switch User</span>
+              </button>
+              <button id="menu-item-logout" onclick="logoutUser()" class="w-full text-left px-3 py-2 text-xs hover:bg-rose-50 text-rose-600 flex items-center space-x-2 hidden">
+                <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-500"></i>
+                <span class="font-medium">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1348,34 +1358,54 @@
   <div id="modal-auth" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="text-sm font-bold text-slate-900">Account Access</h3>
+        <div class="flex items-center space-x-2">
+          <i data-lucide="lock" class="w-4 h-4 text-brand-600"></i>
+          <h3 id="auth-modal-title" class="text-sm font-bold text-slate-900">Sign In Required</h3>
+        </div>
         <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-700">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
+      <!-- Notice when triggered by Add to Cart or Buy Now -->
+      <div id="auth-intent-notice" class="hidden p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-xs flex items-center space-x-2">
+      </div>
+
       <form id="auth-form" class="space-y-3 text-xs">
         <div>
           <label class="block text-slate-700 font-medium mb-1">Email Address</label>
-          <input type="email" id="auth-email" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          <input type="email" id="auth-email" value="john.doe@example.com" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
         </div>
         <div>
           <label class="block text-slate-700 font-medium mb-1">Password</label>
-          <input type="password" id="auth-password" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          <input type="password" id="auth-password" value="password123" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
         </div>
 
-        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
-          Sign In
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition flex items-center justify-center space-x-2">
+          <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+          <span>Sign In</span>
         </button>
       </form>
 
       <div class="pt-2 border-t border-slate-100 text-center">
-        <span class="text-[11px] text-slate-400 block mb-2">Or switch immediately using demo accounts:</span>
+        <span class="text-[11px] text-slate-400 block mb-2">Or continue instantly with demo account:</span>
         <div class="grid grid-cols-2 gap-1.5 text-[10px]">
-          <button onclick="switchRole('customer')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Customer</button>
-          <button onclick="switchRole('seller')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Seller</button>
-          <button onclick="switchRole('admin')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Admin</button>
-          <button onclick="switchRole('super_admin')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Super Admin</button>
+          <button onclick="switchRole('customer')" class="p-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold border border-brand-200 flex items-center justify-center space-x-1">
+            <i data-lucide="user" class="w-3 h-3"></i>
+            <span>Customer Demo</span>
+          </button>
+          <button onclick="switchRole('seller')" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center justify-center space-x-1">
+            <i data-lucide="store" class="w-3 h-3"></i>
+            <span>Seller Demo</span>
+          </button>
+          <button onclick="switchRole('admin')" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center justify-center space-x-1">
+            <i data-lucide="shield" class="w-3 h-3"></i>
+            <span>Admin</span>
+          </button>
+          <button onclick="switchRole('super_admin')" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center justify-center space-x-1">
+            <i data-lucide="zap" class="w-3 h-3"></i>
+            <span>Super Admin</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1718,6 +1748,6 @@
     </div>
   </footer>
 
-  <script src="/static/app.js?v=2.0.5"></script>
+  <script src="/static/app.js?v=2.0.7"></script>
 </body>
 </html>

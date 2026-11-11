@@ -64,10 +64,13 @@ async function api(endpoint, options = {}) {
   try {
     const res = await fetch(endpoint, { ...options, headers });
     if (res.status === 401) {
-      // If unauthorized, prompt or reset to customer demo
-      console.warn('Unauthorized request, re-authenticating as customer demo');
-      await switchRole('customer', false);
-      return null;
+      console.warn('Unauthorized request (401) on', endpoint);
+      // Clean up invalid session without auto-switching demo
+      state.token = '';
+      state.currentUser = null;
+      localStorage.removeItem('bazaarly_token');
+      updateHeaderUserUI();
+      throw new Error('Unauthorized');
     }
     const contentType = res.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
@@ -101,36 +104,241 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initSession() {
   try {
-    if (!state.token) {
-      // Auto-login as default customer demo
-      await switchRole('customer', false);
-    } else {
+    if (state.token) {
       const user = await api('/api/auth/me');
-      state.currentUser = user;
-      updateHeaderUserUI();
+      if (user && user.id) {
+        state.currentUser = user;
+      } else {
+        state.token = '';
+        state.currentUser = null;
+        localStorage.removeItem('bazaarly_token');
+      }
+    } else {
+      state.currentUser = null;
     }
   } catch (e) {
-    console.warn('Session init failed, switching to customer demo:', e);
-    await switchRole('customer', false);
+    console.warn('Session init check failed, operating as guest:', e.message);
+    state.token = '';
+    state.currentUser = null;
+    localStorage.removeItem('bazaarly_token');
   }
+  updateHeaderUserUI();
 }
 
 function updateHeaderUserUI() {
-  if (!state.currentUser) return;
   const roleLabel = document.getElementById('active-role-label');
-  if (roleLabel) {
-    const formatted = state.currentUser.role.replace('_', ' ').toUpperCase();
-    roleLabel.textContent = `${state.currentUser.first_name} (${formatted})`;
-  }
+  const roleIcon = document.getElementById('active-role-icon');
   const greeting = document.getElementById('customer-greeting');
-  if (greeting) {
-    greeting.textContent = `Welcome, ${state.currentUser.first_name} ${state.currentUser.last_name}`;
+  const logoutBtn = document.getElementById('menu-item-logout');
+
+  if (state.currentUser) {
+    const formatted = (state.currentUser.role || 'customer').replace('_', ' ').toUpperCase();
+    const displayName = state.currentUser.full_name || state.currentUser.first_name || 'Customer';
+    const shortName = displayName.split(' ')[0];
+    if (roleLabel) roleLabel.textContent = `${shortName} (${formatted})`;
+    if (roleIcon) {
+      roleIcon.setAttribute('data-lucide', 'user-check');
+      roleIcon.className = 'w-3.5 h-3.5 text-brand-600';
+    }
+    if (greeting) greeting.textContent = `Welcome, ${displayName}`;
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
+  } else {
+    if (roleLabel) roleLabel.textContent = 'Sign In';
+    if (roleIcon) {
+      roleIcon.setAttribute('data-lucide', 'log-in');
+      roleIcon.className = 'w-3.5 h-3.5 text-slate-500';
+    }
+    if (greeting) greeting.textContent = 'Welcome to Bazaarly';
+    if (logoutBtn) logoutBtn.classList.add('hidden');
   }
+  lucide.createIcons();
+}
+
+// ==========================================
+// PENDING ACTION & INTENT PRESERVATION
+// ==========================================
+function savePendingAction(action) {
+  state.pendingAction = action;
+  try {
+    sessionStorage.setItem('bazaarly_pending_action', JSON.stringify(action));
+  } catch (e) {
+    console.warn('Failed to save pending action to sessionStorage:', e);
+  }
+}
+
+function getPendingAction() {
+  if (state.pendingAction) return state.pendingAction;
+  try {
+    const raw = sessionStorage.getItem('bazaarly_pending_action');
+    if (raw) {
+      state.pendingAction = JSON.parse(raw);
+      return state.pendingAction;
+    }
+  } catch (e) {
+    console.warn('Failed to parse pending action from sessionStorage:', e);
+  }
+  return null;
+}
+
+function clearPendingAction() {
+  state.pendingAction = null;
+  try {
+    sessionStorage.removeItem('bazaarly_pending_action');
+  } catch (e) {}
 }
 
 // ==========================================
 // ROLE SWITCHING & AUTH
 // ==========================================
+function openAuthModal(mode = 'login') {
+  const modal = document.getElementById('modal-auth');
+  if (!modal) return;
+
+  const titleEl = document.getElementById('auth-modal-title');
+  const noticeEl = document.getElementById('auth-intent-notice');
+  const pending = getPendingAction();
+
+  if (noticeEl) {
+    if (pending) {
+      const actionText = pending.type === 'buy_now' 
+        ? 'Buy Now direct checkout' 
+        : 'adding this product to your cart';
+      noticeEl.innerHTML = `
+        <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-600 shrink-0"></i>
+        <div class="leading-tight">
+          <span class="font-bold text-slate-900 block">Sign In to continue</span>
+          <span class="text-slate-600">Please sign in to proceed with <strong>${actionText}</strong>. You will stay on this exact page!</span>
+        </div>
+      `;
+      noticeEl.classList.remove('hidden');
+    } else {
+      noticeEl.classList.add('hidden');
+    }
+  }
+
+  if (titleEl) {
+    titleEl.textContent = pending ? 'Sign In Required' : 'Account Access';
+  }
+
+  modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById('modal-auth');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function submitLogin(e) {
+  if (e) e.preventDefault();
+  const emailInput = document.getElementById('auth-email');
+  const passwordInput = document.getElementById('auth-password');
+  const email = emailInput?.value?.trim();
+  const password = passwordInput?.value;
+
+  if (!email || !password) {
+    showToast('Please provide both email and password', 'warning');
+    return;
+  }
+
+  try {
+    const res = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+
+    if (res && res.access_token) {
+      showToast(`Signed in successfully as ${res.user.full_name || res.user.first_name || 'Customer'}`, 'success');
+      await handleAuthSuccess(res.access_token, res.user);
+    }
+  } catch (err) {
+    showToast('Login failed: ' + err.message, 'error');
+  }
+}
+
+function logoutUser() {
+  state.token = '';
+  state.currentUser = null;
+  localStorage.removeItem('bazaarly_token');
+  clearPendingAction();
+  updateHeaderUserUI();
+  refreshCart();
+  showToast('You have been signed out', 'info');
+  const dropdown = document.getElementById('role-switcher-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+async function handleAuthSuccess(token, user, isDemoSwitch = false) {
+  state.token = token;
+  state.currentUser = user;
+  localStorage.setItem('bazaarly_token', token);
+  updateHeaderUserUI();
+  closeAuthModal();
+
+  const pending = getPendingAction();
+  if (pending) {
+    clearPendingAction();
+
+    // 1. Ensure the user stays on the exact page/view they were on!
+    if (pending.view === 'product-detail' && pending.product) {
+      state.currentProduct = pending.product;
+      state.selectedVariant = pending.selectedVariant || null;
+      navigateTo('product-detail', false);
+    } else if (pending.view) {
+      navigateTo(pending.view, false);
+    }
+
+    if (pending.scrollY) {
+      setTimeout(() => window.scrollTo({ top: pending.scrollY, behavior: 'smooth' }), 50);
+    }
+
+    // 2. Execute the saved pending action
+    try {
+      if (pending.type === 'add_to_cart' || pending.type === 'buy_now') {
+        await api('/api/cart/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            product_id: pending.productId,
+            variant_id: pending.variantId || null,
+            quantity: pending.quantity || 1
+          })
+        });
+        await refreshCart();
+
+        if (pending.type === 'buy_now') {
+          showToast('Signed in! Proceeding directly to Buy Now checkout...', 'success');
+          openCheckoutModal();
+        } else {
+          showToast('Signed in! Item successfully added to your cart.', 'success');
+          openCartDrawer();
+        }
+      } else if (pending.type === 'open_checkout') {
+        await refreshCart();
+        showToast('Signed in! Proceeding to checkout...', 'success');
+        openCheckoutModal();
+      }
+    } catch (err) {
+      showToast('Could not complete saved action: ' + err.message, 'error');
+    }
+    return;
+  }
+
+  // If NO pending action, navigate to matching portal
+  if (user.role === 'customer') {
+    if (state.activeView !== 'product-detail' && state.activeView !== 'storefront') {
+      navigateTo('storefront');
+    }
+  } else if (user.role === 'seller') {
+    navigateTo('seller-dashboard');
+  } else if (user.role === 'admin') {
+    navigateTo('admin-dashboard');
+  } else if (user.role === 'super_admin') {
+    navigateTo('super-admin-dashboard');
+  }
+
+  await refreshCart();
+}
+
 async function switchRole(role, notify = true) {
   try {
     const res = await api(`/api/auth/switch-demo?role=${role}`, { 
@@ -138,30 +346,14 @@ async function switchRole(role, notify = true) {
       body: JSON.stringify({ role })
     });
     if (res && res.access_token) {
-      state.token = res.access_token;
-      state.currentUser = res.user;
-      localStorage.setItem('bazaarly_token', res.access_token);
-      updateHeaderUserUI();
-      
       const dropdown = document.getElementById('role-switcher-dropdown');
       if (dropdown) dropdown.classList.add('hidden');
 
       if (notify) {
-        showToast(`Switched to ${role.replace('_', ' ').toUpperCase()} portal (${res.user.first_name})`, 'success');
+        showToast(`Switched to ${role.replace('_', ' ').toUpperCase()} portal (${res.user.first_name || res.user.full_name})`, 'success');
       }
 
-      // Navigate to matching portal
-      if (role === 'customer') {
-        navigateTo('storefront');
-      } else if (role === 'seller') {
-        navigateTo('seller-dashboard');
-      } else if (role === 'admin') {
-        navigateTo('admin-dashboard');
-      } else if (role === 'super_admin') {
-        navigateTo('super-admin-dashboard');
-      }
-
-      await refreshCart();
+      await handleAuthSuccess(res.access_token, res.user, true);
     }
   } catch (err) {
     showToast('Failed to switch role: ' + err.message, 'error');
@@ -171,7 +363,7 @@ async function switchRole(role, notify = true) {
 // ==========================================
 // NAVIGATION & VIEW SWITCHING
 // ==========================================
-function navigateTo(viewName) {
+function navigateTo(viewName, resetScroll = true) {
   const views = [
     'storefront',
     'product-detail',
@@ -193,7 +385,9 @@ function navigateTo(viewName) {
   });
 
   state.activeView = viewName;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (resetScroll) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // Update navbar active states
   document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -737,7 +931,24 @@ function updateDetailQty(delta) {
 async function addDetailToCart(instantCheckout = false) {
   if (!state.currentProduct) return;
   const variantId = state.selectedVariant ? state.selectedVariant.id : null;
-  const qty = state.selectedQuantity;
+  const qty = state.selectedQuantity || 1;
+
+  // Verify authentication
+  if (!state.token || !state.currentUser) {
+    savePendingAction({
+      type: instantCheckout ? 'buy_now' : 'add_to_cart',
+      productId: state.currentProduct.id,
+      variantId: variantId,
+      quantity: qty,
+      view: 'product-detail',
+      product: state.currentProduct,
+      selectedVariant: state.selectedVariant,
+      scrollY: window.scrollY
+    });
+    showToast(instantCheckout ? 'Please sign in to proceed with Buy Now direct checkout' : 'Please sign in to add items to your cart', 'info');
+    openAuthModal('login');
+    return;
+  }
 
   try {
     await api('/api/cart/items', {
@@ -763,6 +974,21 @@ async function addDetailToCart(instantCheckout = false) {
 }
 
 async function quickAddToCart(productId) {
+  // Verify authentication
+  if (!state.token || !state.currentUser) {
+    savePendingAction({
+      type: 'add_to_cart',
+      productId: productId,
+      variantId: null,
+      quantity: 1,
+      view: state.activeView || 'storefront',
+      scrollY: window.scrollY
+    });
+    showToast('Please sign in to add this product to your cart', 'info');
+    openAuthModal('login');
+    return;
+  }
+
   try {
     await api('/api/cart/items', {
       method: 'POST',
@@ -773,6 +999,7 @@ async function quickAddToCart(productId) {
     });
     await refreshCart();
     showToast('Product added to shopping cart', 'success');
+    openCartDrawer();
   } catch (err) {
     showToast('Failed to add to cart: ' + err.message, 'error');
   }
@@ -1003,14 +1230,27 @@ function openCheckoutModal() {
     showToast('Your shopping cart is empty', 'warning');
     return;
   }
+
+  // Ensure authentication before completing checkout
+  if (!state.token || !state.currentUser) {
+    savePendingAction({
+      type: 'open_checkout',
+      view: state.activeView || 'storefront',
+      scrollY: window.scrollY
+    });
+    showToast('Please sign in to complete checkout', 'info');
+    openAuthModal('login');
+    return;
+  }
+
   closeCartDrawer();
 
   // Populate default address if user is logged in
   if (state.currentUser) {
     const nameEl = document.getElementById('chk-name');
     const phoneEl = document.getElementById('chk-phone');
-    if (nameEl && !nameEl.value) nameEl.value = `${state.currentUser.first_name} ${state.currentUser.last_name}`;
-    if (phoneEl && !phoneEl.value) phoneEl.value = '+1 (555) 321-7890';
+    if (nameEl && !nameEl.value) nameEl.value = state.currentUser.full_name || `${state.currentUser.first_name || ''} ${state.currentUser.last_name || ''}`.trim();
+    if (phoneEl && !phoneEl.value) phoneEl.value = state.currentUser.phone || '+1 (555) 321-7890';
   }
 
   const finalAmount = document.getElementById('checkout-final-amount');
@@ -2660,8 +2900,23 @@ function setupEventListeners() {
   // Role toggle
   document.getElementById('btn-role-switcher-toggle')?.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (!state.currentUser) {
+      openAuthModal('login');
+      return;
+    }
     const dropdown = document.getElementById('role-switcher-dropdown');
     if (dropdown) dropdown.classList.toggle('hidden');
+  });
+
+  // User icon button
+  document.getElementById('btn-user-menu')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!state.currentUser) {
+      openAuthModal('login');
+    } else {
+      const dropdown = document.getElementById('role-switcher-dropdown');
+      if (dropdown) dropdown.classList.toggle('hidden');
+    }
   });
 
   document.addEventListener('click', () => {
@@ -2669,7 +2924,13 @@ function setupEventListeners() {
     if (dropdown) dropdown.classList.add('hidden');
   });
 
+  // Auth modal background click
+  document.getElementById('modal-auth')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-auth') closeAuthModal();
+  });
+
   // Forms
+  document.getElementById('auth-form')?.addEventListener('submit', submitLogin);
   document.getElementById('checkout-form')?.addEventListener('submit', submitCheckoutOrder);
   document.getElementById('add-product-form')?.addEventListener('submit', submitNewProduct);
   document.getElementById('payout-form')?.addEventListener('submit', submitPayout);
