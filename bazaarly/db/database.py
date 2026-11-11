@@ -402,6 +402,33 @@ def init_schema():
         );
         """)
 
+        # 22. Roles & Permissions Table (RBAC Matrix)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roles_permissions (
+            id TEXT PRIMARY KEY,
+            role_key TEXT UNIQUE NOT NULL,
+            role_name TEXT NOT NULL,
+            description TEXT,
+            permissions_json TEXT NOT NULL,
+            is_system INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        # 23. Security & Login History Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS login_history (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            email TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('success', 'failed', 'blocked')),
+            user_agent TEXT,
+            failure_reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
         # Indexes for fast querying
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_products_seller ON products (seller_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_products_category ON products (category_id);")
@@ -409,6 +436,105 @@ def init_schema():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_seller_orders_seller ON seller_orders (seller_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews (product_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_history_email ON login_history (email);")
+
+        ensure_superadmin_fixtures(cursor)
+
+
+def ensure_superadmin_fixtures(cursor):
+    """Ensures RBAC roles, security history, payouts, and extended gateway configs are always populated."""
+    # Ensure default roles in roles_permissions
+    roles = [
+        ("rol-superadmin", "super_admin", "Super Administrator", "Full unconstrained administrative privileges across all modules, rate policies, and security controls.", json.dumps({
+            "catalog": ["view", "create", "edit", "delete", "approve", "export"],
+            "orders": ["view", "create", "edit", "delete", "approve", "export"],
+            "merchants": ["view", "create", "edit", "delete", "approve", "export"],
+            "settlements": ["view", "create", "edit", "delete", "approve", "export"],
+            "settings": ["view", "create", "edit", "delete", "approve", "export"],
+            "security": ["view", "create", "edit", "delete", "approve", "export"]
+        }), 1),
+        ("rol-operations", "admin", "Operations Administrator", "Manages merchant onboarding, product catalog moderation, order fulfillment, and dispute resolutions.", json.dumps({
+            "catalog": ["view", "create", "edit", "delete", "approve", "export"],
+            "orders": ["view", "edit", "approve", "export"],
+            "merchants": ["view", "edit", "approve", "export"],
+            "settlements": ["view", "export"],
+            "settings": ["view"],
+            "security": ["view"]
+        }), 1),
+        ("rol-finance", "finance_admin", "Finance & Settlement Controller", "Manages seller withdrawal settlements, commission rules, transaction audits, and gateway configs.", json.dumps({
+            "catalog": ["view", "export"],
+            "orders": ["view", "export"],
+            "merchants": ["view", "export"],
+            "settlements": ["view", "create", "edit", "approve", "export"],
+            "settings": ["view", "edit"],
+            "security": ["view", "export"]
+        }), 0),
+        ("rol-support", "support_admin", "Customer & Order Support", "Handles customer disputes, order tracking inquiries, and review moderation.", json.dumps({
+            "catalog": ["view"],
+            "orders": ["view", "edit"],
+            "merchants": ["view"],
+            "settlements": [],
+            "settings": [],
+            "security": []
+        }), 0)
+    ]
+    cursor.executemany("""
+    INSERT OR IGNORE INTO roles_permissions (id, role_key, role_name, description, permissions_json, is_system)
+    VALUES (?, ?, ?, ?, ?, ?);
+    """, roles)
+
+    # Seed sample seller payout requests if none exist
+    cursor.execute("SELECT COUNT(*) as cnt FROM seller_payouts;")
+    if cursor.fetchone()["cnt"] == 0:
+        sample_payouts = [
+            ("payo-001", "sel-nexus-tech", 2450.00, "requested", "Chase Bank • AC-9876543210 (Routing: 021000021)", "Weekly batch settlement for audio inventory", "2026-11-10 14:22:00", None),
+            ("payo-002", "sel-urban-weave", 1280.00, "requested", "Bank of America • AC-1234567890 (Routing: 111000123)", "Mid-month apparel disbursements", "2026-11-11 08:15:00", None),
+            ("payo-003", "sel-nexus-tech", 5000.00, "completed", "Chase Bank • AC-9876543210 (Routing: 021000021)", "Standard bi-weekly merchant disbursement", "2026-11-01 10:00:00", "2026-11-02 12:30:00")
+        ]
+        cursor.executemany("""
+        INSERT OR IGNORE INTO seller_payouts (id, seller_id, amount, status, bank_details, notes, requested_at, processed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """, sample_payouts)
+
+    # Seed sample login security history if none exist
+    cursor.execute("SELECT COUNT(*) as cnt FROM login_history;")
+    if cursor.fetchone()["cnt"] == 0:
+        sample_logins = [
+            ("log-001", "usr-superadmin", "superadmin@bazaarly.com", "192.168.1.10", "success", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0", None, "2026-11-11 09:30:15"),
+            ("log-002", "usr-admin", "admin@bazaarly.com", "192.168.1.15", "success", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0", None, "2026-11-11 09:15:00"),
+            ("log-003", None, "unauthorized_probe@ip-bot.net", "198.51.100.42", "failed", "Python-urllib/3.10", "Invalid authentication credentials", "2026-11-11 08:45:22"),
+            ("log-004", "usr-seller-tech", "techstore@bazaarly.com", "192.168.1.20", "success", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", None, "2026-11-11 08:00:10"),
+            ("log-005", None, "admin@bazaarly.com", "203.0.113.88", "blocked", "Mozilla/5.0 (X11; Linux x86_64)", "Anomalous IP geolocation blocked by policy", "2026-11-10 23:14:02")
+        ]
+        cursor.executemany("""
+        INSERT OR IGNORE INTO login_history (id, user_id, email, ip_address, status, user_agent, failure_reason, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """, sample_logins)
+
+    # Seed extended system gateway & configuration settings
+    ext_settings = [
+        ("stripe_enabled", "true"),
+        ("stripe_mode", "test"),
+        ("stripe_publishable_key", "pk_test_51Mz0BazaarlyLivePlatform001"),
+        ("stripe_secret_key", "sk_test_51Mz0BazaarlySecureSecret001"),
+        ("sslcommerz_enabled", "true"),
+        ("sslcommerz_sandbox", "true"),
+        ("sslcommerz_store_id", "bazaarly_live01"),
+        ("sslcommerz_store_passwd", "bazaarly_secret_pass"),
+        ("cod_enabled", "true"),
+        ("bank_wire_enabled", "true"),
+        ("bank_wire_instructions", "Wire to: Chase Commercial Banking, AC# 9876543210, Routing# 021000021. Memo: Order Number"),
+        ("maintenance_mode", "false"),
+        ("currency_code", "USD"),
+        ("smtp_host", "smtp.sendgrid.net"),
+        ("smtp_port", "587"),
+        ("smtp_user", "apikey"),
+        ("smtp_tls", "true"),
+        ("seo_meta_title", "Bazaarly — Curated Multi-Vendor Marketplace"),
+        ("seo_meta_desc", "Shop verified independent merchants with unified tracking and buyer protection.")
+    ]
+    cursor.executemany("INSERT OR IGNORE INTO system_settings (key, value) VALUES (?, ?);", ext_settings)
+
 
 
 def seed_data():

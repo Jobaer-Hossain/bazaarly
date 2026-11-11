@@ -25,7 +25,13 @@ const state = {
   },
   wishlist: JSON.parse(localStorage.getItem('bazaarly_wishlist') || '[]'),
   sellerChart: null,
-  lastCompletedOrder: null
+  lastCompletedOrder: null,
+  saActiveTab: 'overview',
+  saUsers: [],
+  saRoles: [],
+  saActiveRoleKey: 'super_admin',
+  saTrendChart: null,
+  saGatewaysChart: null
 };
 
 // API Helper
@@ -1533,73 +1539,671 @@ function downloadSalesCSV() {
 }
 
 // ==========================================
-// SUPER ADMIN DASHBOARD
+// SUPER ADMIN GOVERNANCE CONSOLE
 // ==========================================
+function switchSuperAdminTab(tabName) {
+  state.saActiveTab = tabName;
+
+  // Toggle button active styling
+  document.querySelectorAll('.sa-subtab').forEach(btn => {
+    if (btn.dataset.satab === tabName) {
+      btn.className = 'sa-subtab px-4 py-2 rounded-xl font-bold transition flex items-center space-x-2 text-brand-600 bg-brand-50';
+    } else {
+      btn.className = 'sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900';
+    }
+  });
+
+  // Toggle panels
+  const panels = ['overview', 'users', 'rbac', 'settlements', 'config', 'security'];
+  panels.forEach(p => {
+    const el = document.getElementById(`sa-panel-${p}`);
+    if (el) {
+      if (p === tabName) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+  });
+
+  if (tabName === 'users') loadSuperAdminUsers();
+  else if (tabName === 'rbac') loadSuperAdminRoles();
+  else if (tabName === 'settlements') loadSuperAdminPayouts();
+  else if (tabName === 'config') loadSuperAdminConfig();
+  else if (tabName === 'security') loadSuperAdminSecurity();
+
+  lucide.createIcons();
+}
+
 async function loadSuperAdminDashboard() {
   try {
-    // Platform Settings
-    const settings = await api('/api/super-admin/settings');
-    if (settings) {
-      if (document.getElementById('cfg-commission')) document.getElementById('cfg-commission').value = settings.platform_commission_pct || 10.0;
-      if (document.getElementById('cfg-tax')) document.getElementById('cfg-tax').value = settings.sales_tax_pct || 7.5;
-      if (document.getElementById('cfg-shipping')) document.getElementById('cfg-shipping').value = settings.flat_shipping_fee || 15.0;
-      if (document.getElementById('cfg-free-ship-threshold')) document.getElementById('cfg-free-ship-threshold').value = settings.free_shipping_threshold || 100.0;
-      if (document.getElementById('cfg-site-name')) document.getElementById('cfg-site-name').value = settings.site_name || 'Bazaarly';
-      if (document.getElementById('cfg-support-email')) document.getElementById('cfg-support-email').value = settings.support_email || 'support@bazaarly.com';
+    const overview = await api('/api/super-admin/overview');
+    if (!overview) return;
+
+    // 1. Fill Hero Financial KPIs
+    const f = overview.finances || {};
+    const gmv = parseFloat(f.total_gross_merchandise_value || 0);
+    const comm = parseFloat(f.platform_net_commissions || 0);
+    const completedPayouts = parseFloat(f.completed_payouts_volume || 0);
+    const pendingPayouts = parseFloat(f.pending_payouts_volume || 0);
+    const totalUsers = parseInt(f.total_registered_users || 0);
+    const verifiedMerchants = parseInt(f.verified_merchants || 0);
+
+    document.getElementById('sa-kpi-gmv').textContent = `$${gmv.toFixed(2)}`;
+    document.getElementById('sa-kpi-commission').textContent = `$${comm.toFixed(2)}`;
+    document.getElementById('sa-kpi-payouts').textContent = `$${completedPayouts.toFixed(2)}`;
+    document.getElementById('sa-kpi-pending-payouts').textContent = `$${pendingPayouts.toFixed(2)}`;
+    document.getElementById('sa-kpi-total-users').textContent = `${totalUsers}`;
+    document.getElementById('sa-kpi-users-desc').textContent = `${f.total_customers || 0} Customers • ${verifiedMerchants} Stores • ${f.total_administrators || 0} Admins`;
+
+    // 2. Initialize Charts
+    initSuperAdminCharts(overview.monthly_trend || [], overview.gateways_volume || []);
+
+    // 3. Maintenance mode status label
+    const isMaintenance = overview.settings?.maintenance_mode === 'true';
+    const statusLbl = document.getElementById('lbl-maintenance-status');
+    if (statusLbl) {
+      statusLbl.textContent = isMaintenance ? 'ON' : 'OFF';
+      statusLbl.className = isMaintenance ? 'text-rose-600' : 'text-emerald-600';
     }
 
-    // Admins List
-    const admins = await api('/api/super-admin/admins');
-    const adminContainer = document.getElementById('superadmin-admins-list');
-    if (adminContainer && admins) {
-      adminContainer.innerHTML = admins.map(a => `
-        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
-          <div class="flex items-center space-x-2">
-            <div class="w-7 h-7 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
-              ${a.first_name.charAt(0)}
-            </div>
-            <div>
-              <div class="font-bold text-slate-900">${a.first_name} ${a.last_name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${a.email}</div>
-            </div>
-          </div>
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200">
-            ${a.role.toUpperCase()}
-          </span>
-        </div>
-      `).join('');
-    }
-
-    // Audit Logs
-    const auditLogs = await api('/api/super-admin/audit-logs');
-    const auditBody = document.getElementById('superadmin-audit-table-body');
-    if (auditBody && auditLogs) {
-      auditBody.innerHTML = auditLogs.map(l => `
-        <tr class="hover:bg-slate-50 transition">
-          <td class="py-2.5 px-4 text-slate-400">${new Date(l.created_at).toLocaleString()}</td>
-          <td class="py-2.5 px-3 font-semibold text-slate-700">${l.user_email || 'SYSTEM'}</td>
-          <td class="py-2.5 px-3 font-bold text-brand-600 uppercase">${l.action}</td>
-          <td class="py-2.5 px-3 text-slate-600">${l.resource_type} (${l.resource_id})</td>
-          <td class="py-2.5 px-3 text-slate-500 truncate max-w-xs">${l.payload || '--'}</td>
-        </tr>
-      `).join('');
-    }
+    switchSuperAdminTab(state.saActiveTab || 'overview');
 
     lucide.createIcons();
   } catch (err) {
-    console.error('Failed to load super admin settings:', err);
+    console.error('Failed to load super admin overview:', err);
   }
 }
 
-async function saveSystemSettings(e) {
+function initSuperAdminCharts(monthlyTrend, gatewaysVolume) {
+  // Chart 1: Revenue & Commission Trend
+  const canvasTrend = document.getElementById('sa-revenue-trend-chart');
+  if (canvasTrend) {
+    if (state.saTrendChart) state.saTrendChart.destroy();
+
+    const labels = monthlyTrend.map(m => m.month);
+    const gmvData = monthlyTrend.map(m => m.gmv);
+    const commData = monthlyTrend.map(m => m.net_commission);
+    const payoutData = monthlyTrend.map(m => m.payouts);
+
+    state.saTrendChart = new Chart(canvasTrend, {
+      type: 'line',
+      data: {
+        labels: labels.length ? labels : ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+        datasets: [
+          {
+            label: 'Platform GMV ($)',
+            data: gmvData.length ? gmvData : [12400, 15800, 19200, 24500, 28900, 34200],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2.5,
+            pointRadius: 4
+          },
+          {
+            label: 'Net Platform Commission ($)',
+            data: commData.length ? commData : [1240, 1580, 1920, 2450, 2890, 3420],
+            borderColor: '#10b981',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 3
+          },
+          {
+            label: 'Merchant Wire Disbursements ($)',
+            data: payoutData.length ? payoutData : [10500, 13200, 16400, 21000, 24800, 29000],
+            borderColor: '#f59e0b',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            pointRadius: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 10 } } }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // Chart 2: Gateways Volume Distribution (Doughnut)
+  const canvasGateways = document.getElementById('sa-gateways-chart');
+  if (canvasGateways) {
+    if (state.saGatewaysChart) state.saGatewaysChart.destroy();
+
+    const providerMap = {
+      'stripe': { label: 'Stripe (Cards)', color: '#2563eb' },
+      'cod': { label: 'Cash on Delivery', color: '#10b981' },
+      'sslcommerz': { label: 'SSLCommerz', color: '#f59e0b' },
+      'bank_transfer': { label: 'Bank Wire', color: '#8b5cf6' }
+    };
+
+    const providers = gatewaysVolume.length ? gatewaysVolume.map(g => g.provider) : ['stripe', 'cod', 'sslcommerz', 'bank_transfer'];
+    const volumes = gatewaysVolume.length ? gatewaysVolume.map(g => g.total_volume) : [473.09, 350.00, 200.00, 600.00];
+
+    state.saGatewaysChart = new Chart(canvasGateways, {
+      type: 'doughnut',
+      data: {
+        labels: providers.map(p => (providerMap[p]?.label || p.toUpperCase())),
+        datasets: [{
+          data: volumes,
+          backgroundColor: providers.map(p => (providerMap[p]?.color || '#94a3b8')),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const legendContainer = document.getElementById('sa-gateways-legend');
+    if (legendContainer) {
+      legendContainer.innerHTML = providers.map((p, i) => `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${providerMap[p]?.color || '#94a3b8'}"></span>
+            <span>${providerMap[p]?.label || p.toUpperCase()}</span>
+          </div>
+          <span class="font-bold text-slate-800">$${(volumes[i] || 0).toFixed(2)}</span>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+// ------------------------------------------
+// Super Admin Users Management
+// ------------------------------------------
+async function loadSuperAdminUsers() {
+  try {
+    const role = document.getElementById('sa-user-role-filter')?.value || 'all';
+    const status = document.getElementById('sa-user-status-filter')?.value || 'all';
+    const search = document.getElementById('sa-user-search-input')?.value || '';
+
+    const q = new URLSearchParams({ role, status, search });
+    const users = await api(`/api/super-admin/users?${q.toString()}`);
+    state.saUsers = users || [];
+    renderSuperAdminUsersTable(state.saUsers);
+  } catch (err) {
+    console.error('Failed to load super admin users:', err);
+  }
+}
+
+function filterSuperAdminUsers() {
+  loadSuperAdminUsers();
+}
+
+function renderSuperAdminUsersTable(users) {
+  const tbody = document.getElementById('sa-users-table-body');
+  if (!tbody) return;
+
+  if (users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No matching user accounts found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const isSelf = state.currentUser && state.currentUser.id === u.id;
+    const roleColors = {
+      'super_admin': 'bg-purple-50 text-purple-700 border-purple-200',
+      'admin': 'bg-brand-50 text-brand-700 border-brand-200',
+      'finance_admin': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      'support_admin': 'bg-amber-50 text-amber-700 border-amber-200',
+      'seller': 'bg-sky-50 text-sky-700 border-sky-200',
+      'customer': 'bg-slate-100 text-slate-700 border-slate-200'
+    };
+
+    const statusBadge = u.status === 'active'
+      ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">ACTIVE</span>`
+      : u.status === 'suspended'
+      ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">SUSPENDED</span>`
+      : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">PENDING</span>`;
+
+    const storeOrOrders = u.role === 'seller'
+      ? `<div class="font-bold text-slate-800">${u.store_name || 'Merchant'}</div><div class="text-[10px] text-slate-400 font-mono">Sales: $${(u.total_sales || 0).toFixed(2)}</div>`
+      : `<div class="text-slate-600">${u.customer_orders_count || 0} purchases placed</div>`;
+
+    return `
+      <tr class="hover:bg-slate-50 transition">
+        <td class="py-3 px-4">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+              ${(u.full_name || u.email || 'U').charAt(0)}
+            </div>
+            <div>
+              <div class="font-bold text-slate-900">${u.full_name || 'User'} ${isSelf ? '<span class="text-[9px] bg-brand-100 text-brand-800 px-1 py-0.2 rounded font-bold">YOU</span>' : ''}</div>
+              <div class="text-[11px] text-slate-400 font-mono">${u.email}</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <select onchange="changeSuperAdminUserRole('${u.id}', this.value)" ${isSelf ? 'disabled' : ''} class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:border-brand-500">
+            <option value="customer" ${u.role === 'customer' ? 'selected' : ''}>Customer</option>
+            <option value="seller" ${u.role === 'seller' ? 'selected' : ''}>Seller</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Operations Admin</option>
+            <option value="finance_admin" ${u.role === 'finance_admin' ? 'selected' : ''}>Finance Admin</option>
+            <option value="support_admin" ${u.role === 'support_admin' ? 'selected' : ''}>Support Staff</option>
+            <option value="super_admin" ${u.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+          </select>
+        </td>
+        <td class="py-3 px-3">${storeOrOrders}</td>
+        <td class="py-3 px-3 text-center">${statusBadge}</td>
+        <td class="py-3 px-3 text-slate-400 font-mono text-[11px]">${new Date(u.created_at).toLocaleDateString()}</td>
+        <td class="py-3 px-3 text-center">
+          ${!isSelf ? `
+            <div class="flex items-center justify-center space-x-1.5">
+              <button onclick="toggleSuperAdminUserStatus('${u.id}', '${u.status === 'active' ? 'suspended' : 'active'}')" class="px-2 py-1 rounded text-[11px] font-semibold border ${u.status === 'active' ? 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700' : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}">
+                ${u.status === 'active' ? 'Suspend' : 'Reactivate'}
+              </button>
+              <button onclick="deleteSuperAdminUser('${u.id}')" class="p-1 rounded text-slate-400 hover:text-rose-600 transition" title="Delete account">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          ` : `<span class="text-[10px] text-slate-400 italic">Self (Protected)</span>`}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+async function toggleSuperAdminUserStatus(userId, newStatus) {
+  try {
+    await api(`/api/super-admin/users/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: newStatus })
+    });
+    showToast(`Account status set to ${newStatus.toUpperCase()}`, 'success');
+    await loadSuperAdminUsers();
+  } catch (err) {
+    showToast('Failed to update user status: ' + err.message, 'error');
+  }
+}
+
+async function changeSuperAdminUserRole(userId, newRole) {
+  try {
+    await api(`/api/super-admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role: newRole })
+    });
+    showToast(`Role reassigned to ${newRole.toUpperCase()}`, 'success');
+    await loadSuperAdminUsers();
+  } catch (err) {
+    showToast('Role update failed: ' + err.message, 'error');
+  }
+}
+
+async function deleteSuperAdminUser(userId) {
+  if (!confirm('Are you sure you want to permanently delete this user account?')) return;
+  try {
+    await api(`/api/super-admin/users/${userId}`, { method: 'DELETE' });
+    showToast('User account removed from platform', 'info');
+    await loadSuperAdminUsers();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+// ------------------------------------------
+// Super Admin RBAC & Roles Matrix
+// ------------------------------------------
+async function loadSuperAdminRoles() {
+  try {
+    const roles = await api('/api/super-admin/roles');
+    state.saRoles = roles || [];
+
+    const pillsList = document.getElementById('sa-roles-pills-list');
+    if (pillsList) {
+      pillsList.innerHTML = state.saRoles.map(r => {
+        const isSelected = r.role_key === state.saActiveRoleKey;
+        return `
+          <button onclick="selectRoleToEdit('${r.role_key}')" class="w-full text-left p-3 rounded-xl border transition flex items-center justify-between ${isSelected ? 'border-brand-600 bg-brand-50/60 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'}">
+            <div>
+              <div class="font-bold text-xs text-slate-900">${r.role_name}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${r.role_key} • ${r.users_count || 0} assigned</div>
+            </div>
+            ${r.is_system ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600">SYSTEM</span>` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Default select active role
+    selectRoleToEdit(state.saActiveRoleKey);
+  } catch (err) {
+    console.error('Failed to load super admin roles:', err);
+  }
+}
+
+function selectRoleToEdit(roleKey) {
+  state.saActiveRoleKey = roleKey;
+  const role = state.saRoles.find(r => r.role_key === roleKey) || state.saRoles[0];
+  if (!role) return;
+
+  // Header
+  document.getElementById('sa-active-role-name').textContent = role.role_name;
+  document.getElementById('sa-active-role-desc').textContent = role.description || 'Custom administrative role';
+  
+  const sysBadge = document.getElementById('sa-active-role-system-badge');
+  const deleteBtn = document.getElementById('btn-sa-delete-role');
+  if (role.is_system) {
+    if (sysBadge) sysBadge.classList.remove('hidden');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+  } else {
+    if (sysBadge) sysBadge.classList.add('hidden');
+    if (deleteBtn) deleteBtn.classList.remove('hidden');
+  }
+
+  // Render Matrix Checkboxes
+  const modules = [
+    { key: 'catalog', name: 'Product Catalog & Brands' },
+    { key: 'orders', name: 'Platform Orders & Shipments' },
+    { key: 'merchants', name: 'Merchant Onboarding & Stores' },
+    { key: 'settlements', name: 'Financial Settlements & Payouts' },
+    { key: 'settings', name: 'System Policies & Gateways' },
+    { key: 'security', name: 'Audit Trail & Login Monitoring' }
+  ];
+  const actions = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
+
+  const tbody = document.getElementById('sa-matrix-tbody');
+  if (tbody) {
+    tbody.innerHTML = modules.map(m => {
+      const perms = role.permissions[m.key] || [];
+      return `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-bold text-slate-800">${m.name}</td>
+          ${actions.map(act => {
+            const hasAction = perms.includes(act);
+            return `
+              <td class="py-3 px-3 text-center">
+                <input type="checkbox" id="matrix-${m.key}-${act}" ${hasAction ? 'checked' : ''} class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+              </td>
+            `;
+          }).join('')}
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Update pills highlight
+  document.querySelectorAll('#sa-roles-pills-list button').forEach(btn => {
+    if (btn.innerText.includes(role.role_key)) {
+      btn.className = 'w-full text-left p-3 rounded-xl border transition flex items-center justify-between border-brand-600 bg-brand-50/60 shadow-xs';
+    } else {
+      btn.className = 'w-full text-left p-3 rounded-xl border transition flex items-center justify-between border-slate-200 bg-white hover:border-slate-300';
+    }
+  });
+
+  lucide.createIcons();
+}
+
+async function saveRolePermissions() {
+  const role = state.saRoles.find(r => r.role_key === state.saActiveRoleKey);
+  if (!role) return;
+
+  const modules = ['catalog', 'orders', 'merchants', 'settlements', 'settings', 'security'];
+  const actions = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
+
+  const newPermissions = {};
+  modules.forEach(m => {
+    newPermissions[m] = [];
+    actions.forEach(act => {
+      const checkbox = document.getElementById(`matrix-${m}-${act}`);
+      if (checkbox && checkbox.checked) {
+        newPermissions[m].push(act);
+      }
+    });
+  });
+
+  try {
+    await api(`/api/super-admin/roles/${role.role_key}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        role_key: role.role_key,
+        role_name: role.role_name,
+        description: role.description,
+        permissions: newPermissions
+      })
+    });
+    showToast(`Permissions updated for '${role.role_name}'`, 'success');
+    await loadSuperAdminRoles();
+  } catch (err) {
+    showToast('Failed to save permissions: ' + err.message, 'error');
+  }
+}
+
+async function deleteActiveRole() {
+  if (!confirm(`Are you sure you want to delete role '${state.saActiveRoleKey}'?`)) return;
+  try {
+    await api(`/api/super-admin/roles/${state.saActiveRoleKey}`, { method: 'DELETE' });
+    showToast('Role deleted', 'info');
+    state.saActiveRoleKey = 'super_admin';
+    await loadSuperAdminRoles();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+function openCreateRoleModal() {
+  document.getElementById('modal-sa-create-role')?.classList.remove('hidden');
+}
+function closeCreateRoleModal() {
+  document.getElementById('modal-sa-create-role')?.classList.add('hidden');
+}
+
+async function submitCreateRole(e) {
   e.preventDefault();
+  const name = document.getElementById('sa-new-role-name')?.value.trim();
+  const key = document.getElementById('sa-new-role-key')?.value.trim().toLowerCase().replace(/\s+/g, '_');
+  const desc = document.getElementById('sa-new-role-desc')?.value.trim();
+
+  try {
+    await api('/api/super-admin/roles', {
+      method: 'POST',
+      body: JSON.stringify({
+        role_key: key,
+        role_name: name,
+        description: desc,
+        permissions: {
+          catalog: ['view'],
+          orders: ['view'],
+          merchants: ['view'],
+          settlements: [],
+          settings: [],
+          security: []
+        }
+      })
+    });
+    showToast(`Role '${name}' created successfully!`, 'success');
+    closeCreateRoleModal();
+    document.getElementById('sa-create-role-form')?.reset();
+    state.saActiveRoleKey = key;
+    await loadSuperAdminRoles();
+  } catch (err) {
+    showToast('Failed to create role: ' + err.message, 'error');
+  }
+}
+
+// ------------------------------------------
+// Super Admin Merchant Settlements
+// ------------------------------------------
+async function loadSuperAdminPayouts() {
+  try {
+    const filter = document.getElementById('sa-payout-filter')?.value || 'all';
+    const payouts = await api(`/api/super-admin/payouts?status=${filter}`);
+    const container = document.getElementById('sa-payouts-container');
+    if (!container) return;
+
+    if (payouts.length === 0) {
+      container.innerHTML = `<div class="p-8 rounded-2xl bg-white border border-slate-200 text-center text-slate-400 text-xs">No merchant settlement requests matching this filter.</div>`;
+      return;
+    }
+
+    container.innerHTML = payouts.map(p => {
+      const isPending = p.status === 'requested';
+      return `
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-1 text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-slate-900 text-sm">${p.store_name}</span>
+              ${p.status === 'completed' ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">SETTLED</span>` : p.status === 'rejected' ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">REJECTED</span>` : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">PENDING APPROVAL</span>`}
+              <span class="text-[10px] text-slate-400 font-mono">ID: #${p.id}</span>
+            </div>
+            <div class="text-slate-600 font-mono">${p.bank_details || 'Bank of America • AC-1234567890'}</div>
+            <div class="text-slate-400 text-[11px]">Requested: ${new Date(p.requested_at).toLocaleString()} ${p.notes ? `• "${p.notes}"` : ''}</div>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Disbursement Amount</span>
+              <span class="text-xl font-extrabold text-slate-900 font-mono">$${p.amount.toFixed(2)}</span>
+            </div>
+
+            ${isPending ? `
+              <div class="flex items-center space-x-2">
+                <button onclick="openSettlePayoutModal('${p.id}', ${p.amount}, '${p.store_name}')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition">
+                  Authorize Wire
+                </button>
+                <button onclick="rejectPayoutRequest('${p.id}')" class="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs transition">
+                  Reject
+                </button>
+              </div>
+            ` : `<span class="text-xs text-slate-400 font-mono">${p.processed_at ? new Date(p.processed_at).toLocaleDateString() : 'Closed'}</span>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    lucide.createIcons();
+  } catch (err) {
+    console.error('Failed to load super admin payouts:', err);
+  }
+}
+
+function openSettlePayoutModal(payoutId, amount, storeName) {
+  document.getElementById('sa-settle-payout-id').value = payoutId;
+  document.getElementById('sa-settle-store-name').textContent = storeName;
+  document.getElementById('sa-settle-amount').textContent = `$${amount.toFixed(2)}`;
+  document.getElementById('sa-settle-ref').value = `FED-WIRE-${Date.now().toString().slice(-8)}`;
+  document.getElementById('modal-sa-settle-payout')?.classList.remove('hidden');
+}
+function closeSettlePayoutModal() {
+  document.getElementById('modal-sa-settle-payout')?.classList.add('hidden');
+}
+
+async function submitSettlePayout(e) {
+  e.preventDefault();
+  const payoutId = document.getElementById('sa-settle-payout-id')?.value;
+  const ref = document.getElementById('sa-settle-ref')?.value.trim();
+  const notes = document.getElementById('sa-settle-notes')?.value.trim();
+
+  try {
+    await api(`/api/super-admin/payouts/${payoutId}/settle`, {
+      method: 'POST',
+      body: JSON.stringify({ transaction_ref: ref, notes })
+    });
+    showToast(`Settlement authorized with reference ${ref}`, 'success');
+    closeSettlePayoutModal();
+    await loadSuperAdminPayouts();
+    await loadSuperAdminDashboard();
+  } catch (err) {
+    showToast('Settlement authorization failed: ' + err.message, 'error');
+  }
+}
+
+async function rejectPayoutRequest(payoutId) {
+  const reason = prompt('Please specify the reason for rejecting this payout request:');
+  if (!reason) return;
+  try {
+    await api(`/api/super-admin/payouts/${payoutId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    showToast('Payout request rejected', 'info');
+    await loadSuperAdminPayouts();
+    await loadSuperAdminDashboard();
+  } catch (err) {
+    showToast('Rejection failed: ' + err.message, 'error');
+  }
+}
+
+// ------------------------------------------
+// Super Admin Gateway & Platform Config
+// ------------------------------------------
+async function loadSuperAdminConfig() {
+  try {
+    const s = await api('/api/super-admin/settings');
+    if (!s) return;
+
+    // Rates & Info
+    if (document.getElementById('cfg-commission')) document.getElementById('cfg-commission').value = s.platform_commission_percent || s.platform_commission_pct || 10.0;
+    if (document.getElementById('cfg-tax')) document.getElementById('cfg-tax').value = s.tax_percent || s.sales_tax_pct || 5.0;
+    if (document.getElementById('cfg-shipping')) document.getElementById('cfg-shipping').value = s.flat_shipping_rate || s.flat_shipping_fee || 5.0;
+    if (document.getElementById('cfg-free-ship-threshold')) document.getElementById('cfg-free-ship-threshold').value = s.free_shipping_threshold || 100.0;
+    if (document.getElementById('cfg-currency')) document.getElementById('cfg-currency').value = s.currency_code || 'USD';
+    if (document.getElementById('cfg-site-name')) document.getElementById('cfg-site-name').value = s.site_name || 'Bazaarly';
+    if (document.getElementById('cfg-support-email')) document.getElementById('cfg-support-email').value = s.support_email || 'support@bazaarly.com';
+    if (document.getElementById('cfg-smtp-host')) document.getElementById('cfg-smtp-host').value = s.smtp_host || 'smtp.sendgrid.net';
+    if (document.getElementById('cfg-smtp-port')) document.getElementById('cfg-smtp-port').value = s.smtp_port || 587;
+    if (document.getElementById('cfg-seo-title')) document.getElementById('cfg-seo-title').value = s.seo_meta_title || 'Bazaarly — Curated Multi-Vendor Marketplace';
+
+    // Gateways
+    if (document.getElementById('gw-stripe-enabled')) document.getElementById('gw-stripe-enabled').checked = s.stripe_enabled !== 'false';
+    if (document.getElementById('gw-stripe-mode')) document.getElementById('gw-stripe-mode').value = s.stripe_mode || 'test';
+    if (document.getElementById('gw-stripe-pub')) document.getElementById('gw-stripe-pub').value = s.stripe_publishable_key || 'pk_test_...';
+    if (document.getElementById('gw-stripe-sec')) document.getElementById('gw-stripe-sec').value = s.stripe_secret_key || '••••••••';
+
+    if (document.getElementById('gw-ssl-enabled')) document.getElementById('gw-ssl-enabled').checked = s.sslcommerz_enabled !== 'false';
+    if (document.getElementById('gw-ssl-sandbox')) document.getElementById('gw-ssl-sandbox').value = s.sslcommerz_sandbox || 'true';
+    if (document.getElementById('gw-ssl-store-id')) document.getElementById('gw-ssl-store-id').value = s.sslcommerz_store_id || 'bazaarly_live01';
+    if (document.getElementById('gw-ssl-store-pw')) document.getElementById('gw-ssl-store-pw').value = s.sslcommerz_store_passwd || '••••••••';
+
+    if (document.getElementById('gw-cod-enabled')) document.getElementById('gw-cod-enabled').checked = s.cod_enabled !== 'false';
+    if (document.getElementById('gw-wire-enabled')) document.getElementById('gw-wire-enabled').checked = s.bank_wire_enabled !== 'false';
+    if (document.getElementById('gw-wire-instructions')) document.getElementById('gw-wire-instructions').value = s.bank_wire_instructions || 'Wire to: Chase Commercial Banking, AC# 9876543210';
+  } catch (err) {
+    console.error('Failed to load super admin config:', err);
+  }
+}
+
+async function saveAllSuperAdminSettings(e) {
+  e.preventDefault();
+
   const payload = {
-    platform_commission_pct: parseFloat(document.getElementById('cfg-commission')?.value),
-    sales_tax_pct: parseFloat(document.getElementById('cfg-tax')?.value),
-    flat_shipping_fee: parseFloat(document.getElementById('cfg-shipping')?.value),
-    free_shipping_threshold: parseFloat(document.getElementById('cfg-free-ship-threshold')?.value),
-    site_name: document.getElementById('cfg-site-name')?.value.trim(),
-    support_email: document.getElementById('cfg-support-email')?.value.trim()
+    platform_commission_percent: document.getElementById('cfg-commission')?.value || '10.0',
+    tax_percent: document.getElementById('cfg-tax')?.value || '5.0',
+    flat_shipping_rate: document.getElementById('cfg-shipping')?.value || '5.00',
+    free_shipping_threshold: document.getElementById('cfg-free-ship-threshold')?.value || '100.00',
+    currency_code: document.getElementById('cfg-currency')?.value || 'USD',
+    site_name: document.getElementById('cfg-site-name')?.value || 'Bazaarly',
+    support_email: document.getElementById('cfg-support-email')?.value || 'support@bazaarly.com',
+    smtp_host: document.getElementById('cfg-smtp-host')?.value || 'smtp.sendgrid.net',
+    smtp_port: document.getElementById('cfg-smtp-port')?.value || '587',
+    seo_meta_title: document.getElementById('cfg-seo-title')?.value || '',
+
+    stripe_enabled: document.getElementById('gw-stripe-enabled')?.checked ? 'true' : 'false',
+    stripe_mode: document.getElementById('gw-stripe-mode')?.value || 'test',
+    stripe_publishable_key: document.getElementById('gw-stripe-pub')?.value || '',
+    stripe_secret_key: document.getElementById('gw-stripe-sec')?.value || '',
+
+    sslcommerz_enabled: document.getElementById('gw-ssl-enabled')?.checked ? 'true' : 'false',
+    sslcommerz_sandbox: document.getElementById('gw-ssl-sandbox')?.value || 'true',
+    sslcommerz_store_id: document.getElementById('gw-ssl-store-id')?.value || '',
+    sslcommerz_store_passwd: document.getElementById('gw-ssl-store-pw')?.value || '',
+
+    cod_enabled: document.getElementById('gw-cod-enabled')?.checked ? 'true' : 'false',
+    bank_wire_enabled: document.getElementById('gw-wire-enabled')?.checked ? 'true' : 'false',
+    bank_wire_instructions: document.getElementById('gw-wire-instructions')?.value || ''
   };
 
   try {
@@ -1607,11 +2211,128 @@ async function saveSystemSettings(e) {
       method: 'PUT',
       body: JSON.stringify(payload)
     });
-    showToast('Platform configuration policies saved successfully', 'success');
+    showToast('All platform policies and gateway parameters saved successfully!', 'success');
   } catch (err) {
-    showToast('Save failed: ' + err.message, 'error');
+    showToast('Failed to save settings: ' + err.message, 'error');
   }
 }
+
+async function toggleMaintenanceMode() {
+  try {
+    const s = await api('/api/super-admin/settings');
+    const current = s?.maintenance_mode === 'true';
+    const next = !current;
+
+    await api('/api/super-admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ maintenance_mode: next ? 'true' : 'false' })
+    });
+
+    const statusLbl = document.getElementById('lbl-maintenance-status');
+    if (statusLbl) {
+      statusLbl.textContent = next ? 'ON' : 'OFF';
+      statusLbl.className = next ? 'text-rose-600' : 'text-emerald-600';
+    }
+
+    showToast(`Platform Maintenance Mode set to ${next ? 'ACTIVATED (ON)' : 'DEACTIVATED (OFF)'}`, next ? 'warning' : 'success');
+  } catch (err) {
+    showToast('Failed to toggle maintenance mode: ' + err.message, 'error');
+  }
+}
+
+// ------------------------------------------
+// Super Admin Security & Audit Monitoring
+// ------------------------------------------
+async function loadSuperAdminSecurity() {
+  try {
+    const stats = await api('/api/super-admin/security-stats');
+    if (stats) {
+      document.getElementById('sec-kpi-failed-attempts').textContent = stats.failed_attempts_count || 0;
+      document.getElementById('sec-kpi-audits-count').textContent = stats.total_audit_events || 0;
+
+      const loginsTbody = document.getElementById('sa-login-history-tbody');
+      if (loginsTbody) {
+        loginsTbody.innerHTML = (stats.login_history || []).map(l => {
+          const statusBadge = l.status === 'success'
+            ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">SUCCESS</span>`
+            : l.status === 'blocked'
+            ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">BLOCKED</span>`
+            : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">FAILED</span>`;
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2.5 px-4 text-slate-400 font-mono">${new Date(l.created_at).toLocaleString()}</td>
+              <td class="py-2.5 px-3 font-bold text-slate-800">${l.email}</td>
+              <td class="py-2.5 px-3 font-mono text-slate-600">${l.ip_address}</td>
+              <td class="py-2.5 px-3 text-slate-500 truncate max-w-xs">${l.user_agent || '--'}</td>
+              <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+              <td class="py-2.5 px-3 text-slate-400">${l.failure_reason || 'Legitimate sign-in'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Platform Audit Trail Table
+    const audits = await api('/api/super-admin/audit-logs');
+    const auditTbody = document.getElementById('superadmin-audit-table-body');
+    if (auditTbody && audits) {
+      auditTbody.innerHTML = audits.map(a => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-2.5 px-4 text-slate-400">${new Date(a.created_at).toLocaleString()}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-700">${a.user_id || 'SUPER_ADMIN'}</td>
+          <td class="py-2.5 px-3 font-bold text-brand-600 uppercase">${a.action}</td>
+          <td class="py-2.5 px-3 text-slate-600">${a.resource_type} (${a.resource_id || '--'})</td>
+          <td class="py-2.5 px-3 text-slate-500 truncate max-w-xs">${a.metadata_json || '--'}</td>
+        </tr>
+      `).join('');
+    }
+
+    lucide.createIcons();
+  } catch (err) {
+    console.error('Failed to load super admin security stats:', err);
+  }
+}
+
+// ------------------------------------------
+// Super Admin Provision Staff Modal
+// ------------------------------------------
+function openProvisionAdminModal() {
+  document.getElementById('modal-sa-provision-admin')?.classList.remove('hidden');
+}
+function closeProvisionAdminModal() {
+  document.getElementById('modal-sa-provision-admin')?.classList.add('hidden');
+}
+
+async function submitProvisionAdmin(e) {
+  e.preventDefault();
+  const name = document.getElementById('sa-new-admin-name')?.value.trim();
+  const email = document.getElementById('sa-new-admin-email')?.value.trim();
+  const password = document.getElementById('sa-new-admin-password')?.value;
+  const phone = document.getElementById('sa-new-admin-phone')?.value.trim();
+  const role = document.getElementById('sa-new-admin-role')?.value || 'admin';
+
+  try {
+    await api('/api/super-admin/admins', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        full_name: name,
+        password,
+        phone,
+        role
+      })
+    });
+    showToast(`Administrator account provisioned for ${email}!`, 'success');
+    closeProvisionAdminModal();
+    document.getElementById('sa-provision-admin-form')?.reset();
+    await loadSuperAdminUsers();
+    await loadSuperAdminDashboard();
+  } catch (err) {
+    showToast('Failed to provision staff: ' + err.message, 'error');
+  }
+}
+
 
 // ==========================================
 // INVOICE RENDERING & PRINTING
@@ -1841,4 +2562,8 @@ function setupEventListeners() {
   document.getElementById('payout-form')?.addEventListener('submit', submitPayout);
   document.getElementById('review-form')?.addEventListener('submit', submitReview);
   document.getElementById('settings-form')?.addEventListener('submit', saveSystemSettings);
+  document.getElementById('sa-all-settings-form')?.addEventListener('submit', saveAllSuperAdminSettings);
+  document.getElementById('sa-provision-admin-form')?.addEventListener('submit', submitProvisionAdmin);
+  document.getElementById('sa-settle-payout-form')?.addEventListener('submit', submitSettlePayout);
+  document.getElementById('sa-create-role-form')?.addEventListener('submit', submitCreateRole);
 }

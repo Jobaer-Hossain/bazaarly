@@ -595,83 +595,546 @@
     <!-- ========================================== -->
     <div id="view-super-admin-dashboard" class="hidden space-y-6">
       
-      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <!-- Executive Header -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span class="text-xs font-semibold text-brand-600 uppercase tracking-wider">Executive Governance</span>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold text-brand-600 uppercase tracking-wider">Executive Governance Console</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">DATABASE WAL ACTIVE</span>
+          </div>
           <h2 class="text-xl font-extrabold text-slate-900 mt-0.5">Super Admin Platform Controls</h2>
-          <p class="text-xs text-slate-500">Configure global financial commission rates, administrators, and audit security</p>
+          <p class="text-xs text-slate-500">Unconstrained platform authority: RBAC matrix, financial settlements, gateways, users, and audit security</p>
         </div>
-        <button onclick="openNewAdminModal()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition flex items-center space-x-1.5">
-          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-          <span>Provision Administrator</span>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openProvisionAdminModal()" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition flex items-center space-x-1.5">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Provision Staff Admin</span>
+          </button>
+          <button onclick="downloadSalesCSV()" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition flex items-center space-x-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Export CSV</span>
+          </button>
+          <button onclick="toggleMaintenanceMode()" id="btn-sa-maintenance" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition flex items-center space-x-1.5">
+            <i data-lucide="power" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>Maintenance: <strong id="lbl-maintenance-status" class="text-emerald-600">OFF</strong></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Super Admin Sub-Navigation Tabs -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-xs flex items-center space-x-1 overflow-x-auto text-xs">
+        <button onclick="switchSuperAdminTab('overview')" class="sa-subtab px-4 py-2 rounded-xl font-bold transition flex items-center space-x-2 text-brand-600 bg-brand-50" data-satab="overview">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span>Financials & Overview</span>
+        </button>
+        <button onclick="switchSuperAdminTab('users')" class="sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900" data-satab="users">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Master User Directory</span>
+        </button>
+        <button onclick="switchSuperAdminTab('rbac')" class="sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900" data-satab="rbac">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span>Role & RBAC Matrix</span>
+        </button>
+        <button onclick="switchSuperAdminTab('settlements')" class="sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900" data-satab="settlements">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+          <span>Merchant Settlements</span>
+        </button>
+        <button onclick="switchSuperAdminTab('config')" class="sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900" data-satab="config">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span>Gateway & Platform Config</span>
+        </button>
+        <button onclick="switchSuperAdminTab('security')" class="sa-subtab px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900" data-satab="security">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Security & Audit Logs</span>
         </button>
       </div>
 
-      <!-- Financial Commission & Platform Policy Configuration -->
-      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-        <h3 class="text-sm font-bold text-slate-900">Platform Policies & Rate Configurations</h3>
+      <!-- ========================================== -->
+      <!-- SA TAB 1: FINANCIALS & OVERVIEW            -->
+      <!-- ========================================== -->
+      <div id="sa-panel-overview" class="space-y-6">
         
-        <form id="settings-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Standard Platform Commission (%)</label>
-            <input type="number" step="0.1" id="cfg-commission" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+        <!-- Hero Financial KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Merchandise Value</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2" id="sa-kpi-gmv">$0.00</div>
+            <span class="text-[11px] text-emerald-600 font-semibold mt-1 block">Platform sales volume</span>
           </div>
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Sales Tax Rate (%)</label>
-            <input type="number" step="0.1" id="cfg-tax" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Platform Commission</span>
+            <div class="text-2xl font-extrabold text-brand-600 mt-2" id="sa-kpi-commission">$0.00</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Direct retained earnings</span>
           </div>
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Flat Shipping Fee ($)</label>
-            <input type="number" step="0.01" id="cfg-shipping" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Completed Payouts</span>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-2" id="sa-kpi-payouts">$0.00</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Settled to merchant banks</span>
           </div>
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Free Shipping Order Threshold ($)</label>
-            <input type="number" step="0.01" id="cfg-free-ship-threshold" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Settlements</span>
+            <div class="text-2xl font-extrabold text-amber-600 mt-2" id="sa-kpi-pending-payouts">$0.00</div>
+            <span class="text-[11px] text-amber-700 font-semibold mt-1 block">Awaiting wire approval</span>
           </div>
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Platform Name</label>
-            <input type="text" id="cfg-site-name" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Ecosystem Users</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2" id="sa-kpi-total-users">0</div>
+            <span class="text-[11px] text-slate-400 mt-1 block" id="sa-kpi-users-desc">Customers, Sellers & Admins</span>
           </div>
-          <div>
-            <label class="block text-slate-700 font-semibold mb-1">Merchant Support Email</label>
-            <input type="email" id="cfg-support-email" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
-          </div>
-
-          <div class="md:col-span-3 pt-2">
-            <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition">
-              Save Global Platform Settings
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Staff Administrators List -->
-      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-        <h3 class="text-sm font-bold text-slate-900">Provisioned Staff Administrators</h3>
-        <div id="superadmin-admins-list" class="space-y-2">
-          <!-- Injected via JS -->
         </div>
-      </div>
 
-      <!-- Audit Trail Table -->
-      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-        <h3 class="text-sm font-bold text-slate-900">Platform Security & Audit Trail</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-600">
-            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
-              <tr>
-                <th class="py-3 px-4">Timestamp</th>
-                <th class="py-3 px-3">Actor</th>
-                <th class="py-3 px-3">Action</th>
-                <th class="py-3 px-3">Resource</th>
-                <th class="py-3 px-3">Payload Data</th>
-              </tr>
-            </thead>
-            <tbody id="superadmin-audit-table-body" class="divide-y divide-slate-100 font-mono text-[11px]">
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Monthly Revenue Trend Chart -->
+          <div class="lg:col-span-2 p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">Platform Financial Trajectory</h3>
+                <p class="text-xs text-slate-500">Gross Merchandise Value vs Net Commission Retained (USD)</p>
+              </div>
+              <span class="text-xs font-mono text-slate-400">Past 6 Months</span>
+            </div>
+            <div class="h-64">
+              <canvas id="sa-revenue-trend-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Payment Gateways Share -->
+          <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Gateway Transaction Volume</h3>
+              <p class="text-xs text-slate-500">Distribution by payment provider</p>
+            </div>
+            <div class="h-52 flex items-center justify-center">
+              <canvas id="sa-gateways-chart"></canvas>
+            </div>
+            <div id="sa-gateways-legend" class="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100">
               <!-- Injected via JS -->
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
+
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- SA TAB 2: MASTER USER & STAFF DIRECTORY    -->
+      <!-- ========================================== -->
+      <div id="sa-panel-users" class="hidden space-y-4">
+        
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <!-- Search & Filter bar -->
+          <div class="flex flex-1 items-center space-x-2">
+            <div class="relative flex-1 max-w-sm">
+              <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400"></i>
+              <input type="text" id="sa-user-search-input" placeholder="Search users by name, email, or phone..." oninput="filterSuperAdminUsers()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-900 focus:outline-none focus:border-brand-500">
+            </div>
+
+            <select id="sa-user-role-filter" onchange="filterSuperAdminUsers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-brand-500">
+              <option value="all">All Roles</option>
+              <option value="customer">Customers</option>
+              <option value="seller">Merchants / Sellers</option>
+              <option value="admin">Operations Admins</option>
+              <option value="finance_admin">Finance Admins</option>
+              <option value="support_admin">Support Staff</option>
+              <option value="super_admin">Super Admins</option>
+            </select>
+
+            <select id="sa-user-status-filter" onchange="filterSuperAdminUsers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-brand-500">
+              <option value="all">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="suspended">Suspended Only</option>
+              <option value="pending">Pending Only</option>
+            </select>
+          </div>
+
+          <button onclick="openProvisionAdminModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold transition flex items-center space-x-1.5 shrink-0">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Add User / Staff</span>
+          </button>
+        </div>
+
+        <!-- Master Users Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">User Identity</th>
+                  <th class="py-3 px-3">Role</th>
+                  <th class="py-3 px-3">Associated Store / Activity</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3">Joined</th>
+                  <th class="py-3 px-3 text-center">Account Governance</th>
+                </tr>
+              </thead>
+              <tbody id="sa-users-table-body" class="divide-y divide-slate-100">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- SA TAB 3: ROLE & RBAC PERMISSION MATRIX    -->
+      <!-- ========================================== -->
+      <div id="sa-panel-rbac" class="hidden space-y-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          <!-- Left Roles List -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">System & Custom Roles</span>
+              <button onclick="openCreateRoleModal()" class="text-xs text-brand-600 hover:text-brand-700 font-bold flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Role</span>
+              </button>
+            </div>
+
+            <div id="sa-roles-pills-list" class="space-y-2">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- Right Permissions Matrix -->
+          <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-base font-extrabold text-slate-900" id="sa-active-role-name">Super Administrator</h3>
+                  <span id="sa-active-role-system-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200">CORE SYSTEM</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5" id="sa-active-role-desc">Full unconstrained administrative privileges across all modules, rate policies, and security controls.</p>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button onclick="saveRolePermissions()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs transition flex items-center space-x-1.5">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Save Permission Matrix</span>
+                </button>
+                <button onclick="deleteActiveRole()" id="btn-sa-delete-role" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold hidden">
+                  Delete Role
+                </button>
+              </div>
+            </div>
+
+            <!-- Matrix Grid -->
+            <div class="space-y-4">
+              <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block">Module & Action Access Controls</span>
+              
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                  <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                    <tr>
+                      <th class="py-3 px-4">Functional Module</th>
+                      <th class="py-3 px-3 text-center">View</th>
+                      <th class="py-3 px-3 text-center">Create</th>
+                      <th class="py-3 px-3 text-center">Edit</th>
+                      <th class="py-3 px-3 text-center">Delete</th>
+                      <th class="py-3 px-3 text-center">Approve</th>
+                      <th class="py-3 px-3 text-center">Export</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sa-matrix-tbody" class="divide-y divide-slate-100">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- SA TAB 4: MERCHANT SETTLEMENTS & PAYOUTS   -->
+      <!-- ========================================== -->
+      <div id="sa-panel-settlements" class="hidden space-y-6">
+        
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Merchant Settlements & Wire Disbursements</h3>
+            <p class="text-xs text-slate-500">Review pending withdrawal requests, verify bank account routing, and process wire settlement receipts</p>
+          </div>
+
+          <div class="flex items-center space-x-2 text-xs">
+            <select id="sa-payout-filter" onchange="loadSuperAdminPayouts()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-brand-500">
+              <option value="all">All Settlements</option>
+              <option value="requested" selected>Pending Review</option>
+              <option value="completed">Settled Only</option>
+              <option value="rejected">Rejected Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Pending Cards Grid -->
+        <div class="space-y-3">
+          <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block">Merchant Payout Requests</span>
+          <div id="sa-payouts-container" class="space-y-3">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- SA TAB 5: GATEWAYS & PLATFORM CONFIG       -->
+      <!-- ========================================== -->
+      <div id="sa-panel-config" class="hidden space-y-6">
+        
+        <form id="sa-all-settings-form" class="space-y-6">
+          
+          <!-- 1. General & Financial Policies -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+            <h3 class="text-sm font-bold text-slate-900">Platform Policies & Currency Rates</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Standard Platform Commission (%)</label>
+                <input type="number" step="0.1" id="cfg-commission" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Sales Tax Rate (%)</label>
+                <input type="number" step="0.1" id="cfg-tax" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Flat Shipping Fee ($)</label>
+                <input type="number" step="0.01" id="cfg-shipping" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Free Shipping Minimum ($)</label>
+                <input type="number" step="0.01" id="cfg-free-ship-threshold" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Primary Marketplace Currency</label>
+                <select id="cfg-currency" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+                  <option value="USD">USD — United States Dollar ($)</option>
+                  <option value="EUR">EUR — Euro (€)</option>
+                  <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
+                  <option value="GBP">GBP — British Pound (£)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Marketplace Platform Name</label>
+                <input type="text" id="cfg-site-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Payment Gateway Controls -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Payment Gateway Integrations</h3>
+              <p class="text-xs text-slate-500">Configure client credentials, sandbox environments, and offline cash/wire switches</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+              
+              <!-- Stripe Card Gateway -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 text-xs">Stripe (Card Payments)</span>
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="checkbox" id="gw-stripe-enabled" class="rounded text-brand-600 focus:ring-brand-500">
+                    <span class="font-semibold text-slate-700">Enabled</span>
+                  </label>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Environment Mode</label>
+                  <select id="gw-stripe-mode" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800">
+                    <option value="test">Sandbox / Test Mode</option>
+                    <option value="live">Production / Live</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Publishable Key</label>
+                  <input type="text" id="gw-stripe-pub" placeholder="pk_test_..." class="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-[11px]">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Secret Key</label>
+                  <input type="password" id="gw-stripe-sec" placeholder="sk_test_..." class="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-[11px]">
+                </div>
+              </div>
+
+              <!-- SSLCommerz Gateway -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 text-xs">SSLCommerz (Mobile / Net Banking)</span>
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="checkbox" id="gw-ssl-enabled" class="rounded text-brand-600 focus:ring-brand-500">
+                    <span class="font-semibold text-slate-700">Enabled</span>
+                  </label>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Sandbox Testing</label>
+                  <select id="gw-ssl-sandbox" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800">
+                    <option value="true">Sandbox Enabled</option>
+                    <option value="false">Live Production</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Store ID</label>
+                  <input type="text" id="gw-ssl-store-id" placeholder="bazaarly_live01" class="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-[11px]">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Store Password</label>
+                  <input type="password" id="gw-ssl-store-pw" placeholder="••••••••••••" class="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-[11px]">
+                </div>
+              </div>
+
+              <!-- Cash On Delivery -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 text-xs">Cash On Delivery (COD)</span>
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="checkbox" id="gw-cod-enabled" class="rounded text-brand-600 focus:ring-brand-500">
+                    <span class="font-semibold text-slate-700">Enabled</span>
+                  </label>
+                </div>
+                <p class="text-slate-500 text-[11px]">Allows customers to pay cash directly to the delivery rider upon parcel arrival.</p>
+              </div>
+
+              <!-- Bank Wire Transfer -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 text-xs">Direct Bank Wire</span>
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="checkbox" id="gw-wire-enabled" class="rounded text-brand-600 focus:ring-brand-500">
+                    <span class="font-semibold text-slate-700">Enabled</span>
+                  </label>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">Wire Transfer Instructions & Bank Routing</label>
+                  <textarea id="gw-wire-instructions" rows="2" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"></textarea>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 3. Communication & SEO -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+            <h3 class="text-sm font-bold text-slate-900">Email SMTP & Meta Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">Support Email</label>
+                <input type="email" id="cfg-support-email" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">SMTP Host</label>
+                <input type="text" id="cfg-smtp-host" placeholder="smtp.sendgrid.net" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-700 font-semibold mb-1">SMTP Port</label>
+                <input type="number" id="cfg-smtp-port" placeholder="587" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+              <div class="md:col-span-3">
+                <label class="block text-slate-700 font-semibold mb-1">SEO Meta Title</label>
+                <input type="text" id="cfg-seo-title" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" class="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md transition">
+                Save All Global Platform Settings
+              </button>
+            </div>
+          </div>
+
+        </form>
+
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- SA TAB 6: SECURITY & AUDIT LOGS            -->
+      <!-- ========================================== -->
+      <div id="sa-panel-security" class="hidden space-y-6">
+        
+        <!-- Security Health Status Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Security Posture</span>
+            <div class="text-lg font-extrabold text-emerald-600 mt-2 flex items-center space-x-1.5" id="sec-kpi-status">
+              <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+              <span>SECURE • Active Threat Protection</span>
+            </div>
+          </div>
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Failed Login Probes</span>
+            <div class="text-3xl font-extrabold text-rose-600 mt-2" id="sec-kpi-failed-attempts">0</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Flagged anomalous IPs</span>
+          </div>
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Audit Trail Records</span>
+            <div class="text-3xl font-extrabold text-brand-600 mt-2" id="sec-kpi-audits-count">0</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Immutable compliance log</span>
+          </div>
+        </div>
+
+        <!-- Login History Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Authentication & Login History</h3>
+            <p class="text-xs text-slate-500">Real-time audit log of user authentications and blocked intrusion attempts</p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Timestamp</th>
+                  <th class="py-3 px-3">Identity Attempt</th>
+                  <th class="py-3 px-3">IP Address</th>
+                  <th class="py-3 px-3">Client / Agent</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3">Notes</th>
+                </tr>
+              </thead>
+              <tbody id="sa-login-history-tbody" class="divide-y divide-slate-100 font-mono text-[11px]">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Platform Audit Trail Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Platform Security Audit Trail</h3>
+              <p class="text-xs text-slate-500">Every administrative rate adjustment, permission modification, and settlement</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Timestamp</th>
+                  <th class="py-3 px-3">Actor</th>
+                  <th class="py-3 px-3">Action</th>
+                  <th class="py-3 px-3">Resource</th>
+                  <th class="py-3 px-3">Metadata Payload</th>
+                </tr>
+              </thead>
+              <tbody id="superadmin-audit-table-body" class="divide-y divide-slate-100 font-mono text-[11px]">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1074,6 +1537,140 @@
   <div id="printable-invoice-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto" id="invoice-sheet">
       <!-- Injected via JS -->
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 9: SUPER ADMIN PROVISION STAFF/ADMIN -->
+  <!-- ========================================== -->
+  <div id="modal-sa-provision-admin" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-brand-600 uppercase tracking-wider">Access Governance</span>
+          <h3 class="text-sm font-bold text-slate-900">Provision Staff Administrator</h3>
+        </div>
+        <button onclick="closeProvisionAdminModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="sa-provision-admin-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Full Legal Name</label>
+          <input type="text" id="sa-new-admin-name" required placeholder="e.g. Samantha Vance" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Corporate Email Address</label>
+          <input type="email" id="sa-new-admin-email" required placeholder="e.g. samantha@bazaarly.com" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Temporary Initial Password</label>
+          <input type="password" id="sa-new-admin-password" required value="password123" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Phone Number</label>
+            <input type="text" id="sa-new-admin-phone" placeholder="+1-555-0188" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Assigned Role</label>
+            <select id="sa-new-admin-role" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              <option value="admin">Operations Admin</option>
+              <option value="finance_admin">Finance Controller</option>
+              <option value="support_admin">Support Staff</option>
+              <option value="super_admin">Super Administrator</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
+          Provision Account & Assign Role
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 10: SUPER ADMIN SETTLE PAYOUT        -->
+  <!-- ========================================== -->
+  <div id="modal-sa-settle-payout" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Treasury Settlement</span>
+          <h3 class="text-sm font-bold text-slate-900">Authorize Wire Settlement</h3>
+        </div>
+        <button onclick="closeSettlePayoutModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="sa-settle-payout-form" class="space-y-3 text-xs">
+        <input type="hidden" id="sa-settle-payout-id">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Merchant Store:</span>
+            <span id="sa-settle-store-name" class="font-bold text-slate-900">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Settlement Amount:</span>
+            <span id="sa-settle-amount" class="font-extrabold text-emerald-600">--</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Bank Wire Transaction Reference</label>
+          <input type="text" id="sa-settle-ref" required placeholder="e.g. FED-WIRE-20261111-998822" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Treasury Memo / Settlement Notes</label>
+          <input type="text" id="sa-settle-notes" value="Approved & executed via Commercial Wire Desk" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">
+          Confirm & Complete Bank Settlement
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 11: SUPER ADMIN CREATE CUSTOM ROLE   -->
+  <!-- ========================================== -->
+  <div id="modal-sa-create-role" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-brand-600 uppercase tracking-wider">RBAC Policy</span>
+          <h3 class="text-sm font-bold text-slate-900">Define Custom Role</h3>
+        </div>
+        <button onclick="closeCreateRoleModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="sa-create-role-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Role Display Name</label>
+          <input type="text" id="sa-new-role-name" required placeholder="e.g. Regional Compliance Officer" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Unique Role Identifier Key</label>
+          <input type="text" id="sa-new-role-key" required placeholder="e.g. compliance_officer" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Role Description & Responsibilities</label>
+          <textarea id="sa-new-role-desc" rows="2" placeholder="Describe the operational mandate of this role..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
+          Create Role Definition
+        </button>
+      </form>
     </div>
   </div>
 

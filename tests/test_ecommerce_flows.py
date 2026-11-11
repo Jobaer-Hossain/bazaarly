@@ -247,6 +247,86 @@ class TestBazaarlyEcommercePlatform(unittest.TestCase):
         self.assertIsNotNone(audit)
         self.assertIn("12.5", audit["metadata_json"])
 
+    def test_09_super_admin_comprehensive_governance(self):
+        """Validates Super Admin directory, RBAC roles matrix, seller settlements, and security monitoring."""
+        auth_res = self.client.post("/api/auth/login", json={
+            "email": "superadmin@bazaarly.com",
+            "password": "password123"
+        }).json()
+        token = auth_res["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # 1. Overview financials
+        overview_res = self.client.get("/api/super-admin/overview", headers=headers)
+        self.assertEqual(overview_res.status_code, 200)
+        overview = overview_res.json()
+        self.assertIn("finances", overview)
+        self.assertIn("monthly_trend", overview)
+        self.assertIn("gateways_volume", overview)
+
+        # 2. Master User Directory
+        users_res = self.client.get("/api/super-admin/users", headers=headers)
+        self.assertEqual(users_res.status_code, 200)
+        users = users_res.json()
+        self.assertGreaterEqual(len(users), 4)
+
+        # 3. User status suspension and reactivation
+        cust_user = next(u for u in users if u["email"] == "john.doe@example.com")
+        suspend_res = self.client.put(f"/api/super-admin/users/{cust_user['id']}/status", json={"status": "suspended"}, headers=headers)
+        self.assertEqual(suspend_res.status_code, 200)
+        reactivate_res = self.client.put(f"/api/super-admin/users/{cust_user['id']}/status", json={"status": "active"}, headers=headers)
+        self.assertEqual(reactivate_res.status_code, 200)
+
+        # 4. RBAC Roles & Custom Role Creation
+        roles_res = self.client.get("/api/super-admin/roles", headers=headers)
+        self.assertEqual(roles_res.status_code, 200)
+        roles = roles_res.json()
+        self.assertTrue(any(r["role_key"] == "super_admin" for r in roles))
+
+        new_role_res = self.client.post("/api/super-admin/roles", json={
+            "role_key": "catalog_auditor",
+            "role_name": "Catalog Quality Auditor",
+            "description": "Reviews media and specifications compliance",
+            "permissions": {
+                "catalog": ["view", "edit", "approve"],
+                "orders": ["view"],
+                "merchants": ["view"],
+                "settlements": [],
+                "settings": [],
+                "security": []
+            }
+        }, headers=headers)
+        self.assertEqual(new_role_res.status_code, 200)
+
+        # 5. Merchant Settlements Wire Authorization
+        payouts_res = self.client.get("/api/super-admin/payouts", headers=headers)
+        self.assertEqual(payouts_res.status_code, 200)
+        payouts = payouts_res.json()
+        self.assertGreaterEqual(len(payouts), 1)
+
+        first_payout = payouts[0]
+        settle_res = self.client.post(f"/api/super-admin/payouts/{first_payout['id']}/settle", json={
+            "transaction_ref": "WIRE-TEST-20261111-001",
+            "notes": "Settled via automated test suite"
+        }, headers=headers)
+        self.assertEqual(settle_res.status_code, 200)
+
+        # 6. Security & Login History stats
+        sec_res = self.client.get("/api/super-admin/security-stats", headers=headers)
+        self.assertEqual(sec_res.status_code, 200)
+        sec_data = sec_res.json()
+        self.assertIn("login_history", sec_data)
+        self.assertIn("failed_attempts_count", sec_data)
+
+        # 7. Gateway Configurations
+        gw_res = self.client.get("/api/super-admin/gateways", headers=headers)
+        self.assertEqual(gw_res.status_code, 200)
+        gateways = gw_res.json()
+        self.assertIn("stripe", gateways)
+        self.assertIn("sslcommerz", gateways)
+        self.assertIn("cod", gateways)
+        self.assertIn("bank_wire", gateways)
+
 
 if __name__ == "__main__":
     unittest.main()
