@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bazaarly — Multi-Vendor eCommerce Platform</title>
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Top Announcement Bar -->
+  <div class="bg-slate-900 text-slate-300 text-xs py-2 px-6">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
+      <div class="flex items-center space-x-2">
+        <span class="px-2 py-0.5 rounded bg-brand-600 text-white font-semibold text-[10px] uppercase">Free Shipping</span>
+        <span>Complimentary delivery on all orders over $100. Use coupon <strong class="text-white">WELCOME10</strong> for 10% off.</span>
+      </div>
+      <div class="flex items-center space-x-4 text-[11px] text-slate-400">
+        <span>24/7 Merchant Support</span>
+        <span>•</span>
+        <span>Multi-Vendor Direct Fulfillment</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Primary Sticky Header Navigation -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('storefront')">
+        <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/20">
+          <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold tracking-tight text-slate-900">Bazaarly</span>
+          <span class="block text-[10px] font-medium text-slate-500 uppercase tracking-wider">Multi-Vendor Marketplace</span>
+        </div>
+      </div>
+
+      <!-- Search Autocomplete Input -->
+      <div class="flex-1 max-w-xl hidden md:block">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+          <input type="text" id="global-search-input" placeholder="Search 1,000+ products across electronics, fashion, home..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 transition">
+        </div>
+      </div>
+
+      <!-- Navigation & Action Controls -->
+      <div class="flex items-center space-x-2 sm:space-x-3 text-xs">
+        
+        <!-- Role Switcher Pill -->
+        <div class="relative">
+          <button id="btn-role-switcher-toggle" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition" title="Switch Portal">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span id="active-role-label">Customer</span>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div id="role-switcher-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-50">
+            <div class="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              One-Click Role Switcher
+            </div>
+            <button onclick="switchRole('customer')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between text-slate-700">
+              <span class="font-medium">Customer Portal</span>
+              <span class="text-[10px] text-slate-400">Johnathan</span>
+            </button>
+            <button onclick="switchRole('seller')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between text-slate-700">
+              <span class="font-medium">Seller Portal</span>
+              <span class="text-[10px] text-slate-400">Nexus Tech</span>
+            </button>
+            <button onclick="switchRole('admin')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between text-slate-700">
+              <span class="font-medium">Admin Portal</span>
+              <span class="text-[10px] text-slate-400">Operations</span>
+            </button>
+            <button onclick="switchRole('super_admin')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between text-slate-700">
+              <span class="font-medium">Super Admin Portal</span>
+              <span class="text-[10px] text-slate-400">Executive</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Wishlist Shortcut -->
+        <button onclick="navigateTo('wishlist')" class="p-2 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition relative" title="Wishlist">
+          <i data-lucide="heart" class="w-4 h-4"></i>
+          <span id="wishlist-badge" class="hidden absolute -top-1 -right-1 bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-bold">0</span>
+        </button>
+
+        <!-- Cart Trigger Button -->
+        <button id="btn-open-cart" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-xs transition">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          <span id="header-cart-count">0</span>
+        </button>
+
+        <!-- User Profile Dropdown / Sign in Trigger -->
+        <div class="relative">
+          <button id="btn-user-menu" class="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition flex items-center space-x-1">
+            <i data-lucide="user" class="w-4 h-4 text-slate-600"></i>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Secondary Navigation: Category Links & Portal Tabs -->
+  <nav class="bg-white border-b border-slate-200 text-xs">
+    <div class="max-w-7xl mx-auto px-6 flex items-center justify-between overflow-x-auto">
+      <div class="flex items-center space-x-6 py-2.5 whitespace-nowrap">
+        <button onclick="navigateTo('storefront')" class="nav-tab font-medium text-brand-600 flex items-center space-x-1.5" data-tab="storefront">
+          <i data-lucide="store" class="w-3.5 h-3.5"></i>
+          <span>Shop All</span>
+        </button>
+        <button onclick="filterByCategory('electronics')" class="nav-tab font-medium text-slate-600 hover:text-slate-900 transition">Electronics</button>
+        <button onclick="filterByCategory('fashion')" class="nav-tab font-medium text-slate-600 hover:text-slate-900 transition">Fashion & Apparel</button>
+        <button onclick="filterByCategory('home-lifestyle')" class="nav-tab font-medium text-slate-600 hover:text-slate-900 transition">Home & Living</button>
+        <button onclick="filterByCategory('sports-fitness')" class="nav-tab font-medium text-slate-600 hover:text-slate-900 transition">Sports</button>
+      </div>
+
+      <div class="flex items-center space-x-3 py-2.5 whitespace-nowrap border-l border-slate-100 pl-4">
+        <button onclick="navigateTo('customer-dashboard')" id="nav-btn-customer-portal" class="text-slate-600 hover:text-brand-600 font-medium flex items-center space-x-1">
+          <i data-lucide="package" class="w-3.5 h-3.5"></i>
+          <span>My Orders</span>
+        </button>
+        <button onclick="navigateTo('seller-dashboard')" id="nav-btn-seller-portal" class="text-slate-600 hover:text-brand-600 font-medium flex items-center space-x-1">
+          <i data-lucide="store" class="w-3.5 h-3.5"></i>
+          <span>Seller Portal</span>
+        </button>
+        <button onclick="navigateTo('admin-dashboard')" id="nav-btn-admin-portal" class="text-slate-600 hover:text-brand-600 font-medium flex items-center space-x-1">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          <span>Admin</span>
+        </button>
+        <button onclick="navigateTo('super-admin-dashboard')" id="nav-btn-superadmin-portal" class="text-slate-600 hover:text-brand-600 font-medium flex items-center space-x-1">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+          <span>Super Admin</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Dynamic View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-6">
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: CUSTOMER STOREFRONT               -->
+    <!-- ========================================== -->
+    <div id="view-storefront" class="space-y-6">
+
+      <!-- Hero Promotion Banner -->
+      <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-brand-600 to-indigo-700 text-white p-8 md:p-12 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="space-y-3 max-w-xl z-10">
+          <span class="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-semibold tracking-wider uppercase text-blue-100">
+            Season Premier • Multi-Vendor Showcase
+          </span>
+          <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+            Curated Brands. Direct from Verified Independent Merchants.
+          </h1>
+          <p class="text-sm text-blue-100 leading-relaxed">
+            Discover precision computing, noise-canceling acoustics, and contemporary streetwear delivered with unified order tracking.
+          </p>
+          <div class="pt-2 flex items-center space-x-3 text-xs">
+            <button onclick="scrollToProducts()" class="px-5 py-2.5 rounded-xl bg-white text-brand-700 font-bold shadow-md hover:bg-slate-50 transition">
+              Explore Catalog
+            </button>
+            <div class="flex items-center space-x-1.5 text-blue-200">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-300"></i>
+              <span>100% Buyer Protection Guaranteed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hidden lg:block relative z-10 shrink-0">
+          <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=380&q=80" alt="Featured Electronics" class="w-64 h-64 object-cover rounded-2xl shadow-2xl border-4 border-white/20">
+        </div>
+      </div>
+
+      <!-- Categories Pills Grid -->
+      <div id="categories-bar" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Catalog Main Area: Sidebar Filters + Products Grid -->
+      <div id="products-catalog-section" class="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-4">
+        
+        <!-- Left Filter Sidebar -->
+        <aside class="space-y-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs h-fit">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span class="font-bold text-xs uppercase tracking-wider text-slate-800">Filter Products</span>
+            <button onclick="resetFilters()" class="text-xs text-brand-600 hover:text-brand-700 font-medium">Reset All</button>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="space-y-2">
+            <span class="text-xs font-semibold text-slate-700 block">Department</span>
+            <div class="space-y-1.5 text-xs text-slate-600" id="filter-categories-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- Price Range Filter -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <span class="text-xs font-semibold text-slate-700 block">Price Range ($)</span>
+            <div class="flex items-center space-x-2 text-xs">
+              <input type="number" id="filter-min-price" placeholder="Min" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
+              <span class="text-slate-400">-</span>
+              <input type="number" id="filter-max-price" placeholder="Max" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-none focus:border-brand-500">
+            </div>
+            <button onclick="applyFilters()" class="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+              Apply Price
+            </button>
+          </div>
+
+          <!-- Stock Availability -->
+          <div class="pt-2 border-t border-slate-100">
+            <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input type="checkbox" id="filter-in-stock" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+              <span>In-Stock Items Only</span>
+            </label>
+          </div>
+
+        </aside>
+
+        <!-- Right Products Grid Container -->
+        <div class="lg:col-span-3 space-y-4">
+          
+          <!-- Bar with Result Count & Sorting -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200 text-xs shadow-xs">
+            <div class="text-slate-500">
+              Showing <span id="products-count-badge" class="font-bold text-slate-800">0</span> verified products
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-slate-500">Sort by:</span>
+              <select id="sort-select" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 text-xs focus:outline-none focus:border-brand-500">
+                <option value="featured">Featured & Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating_desc">Highest Rated</option>
+                <option value="title_asc">Name: A to Z</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <!-- Injected via JavaScript -->
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: PRODUCT DETAIL PAGE               -->
+    <!-- ========================================== -->
+    <div id="view-product-detail" class="hidden space-y-6">
+      
+      <!-- Back button -->
+      <button onclick="navigateTo('storefront')" class="flex items-center space-x-1 text-xs text-slate-500 hover:text-brand-600 transition">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Back to Catalog</span>
+      </button>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8" id="product-detail-container">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Reviews Section -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-xs space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Verified Customer Reviews</h3>
+            <p class="text-xs text-slate-500">Real feedback from verified purchasers</p>
+          </div>
+          <button onclick="openReviewModal()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition">
+            Write a Review
+          </button>
+        </div>
+
+        <div id="product-reviews-list" class="space-y-4">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: CUSTOMER ORDERS & DASHBOARD       -->
+    <!-- ========================================== -->
+    <div id="view-customer-dashboard" class="hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-brand-600 uppercase tracking-wider">Customer Portal</span>
+          <h2 class="text-xl font-extrabold text-slate-900 mt-0.5" id="customer-greeting">Welcome, Johnathan</h2>
+          <p class="text-xs text-slate-500">Track orders, manage addresses, and review past purchases</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="openAddressModal()" class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition">
+            Add Shipping Address
+          </button>
+        </div>
+      </div>
+
+      <!-- Customer KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Orders</span>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="cust-kpi-total-orders">--</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Shipments</span>
+          <div class="text-3xl font-extrabold text-brand-600 mt-2" id="cust-kpi-active-orders">--</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saved in Wishlist</span>
+          <div class="text-3xl font-extrabold text-rose-600 mt-2" id="cust-kpi-wishlist">--</div>
+        </div>
+      </div>
+
+      <!-- Order History List -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Your Order History</h3>
+        <div id="customer-orders-container" class="space-y-4">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 4: SELLER DASHBOARD & INVENTORY      -->
+    <!-- ========================================== -->
+    <div id="view-seller-dashboard" class="hidden space-y-6">
+      
+      <!-- Store Header Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <img id="seller-header-logo" src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=120&q=80" class="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-xs">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-xl font-extrabold text-slate-900" id="seller-store-name">Nexus Electronics</h2>
+              <span id="seller-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">VERIFIED MERCHANT</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="seller-store-desc">Direct distributor of high-fidelity audio, computing, and accessories.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="openAddProductModal()" class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition flex items-center space-x-1.5">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span>Add New Product</span>
+          </button>
+          <button onclick="openPayoutModal()" class="px-3.5 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition flex items-center space-x-1.5">
+            <i data-lucide="wallet" class="w-3.5 h-3.5 text-slate-600"></i>
+            <span>Request Payout</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seller KPIs Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Revenue</span>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="seller-kpi-revenue">$0.00</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Net sales after commissions</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Balance</span>
+          <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="seller-kpi-balance">$0.00</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Ready for bank withdrawal</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Orders</span>
+          <div class="text-3xl font-extrabold text-amber-600 mt-2" id="seller-kpi-pending-orders">0</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Awaiting fulfillment</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Low Stock Alerts</span>
+          <div class="text-3xl font-extrabold text-rose-600 mt-2" id="seller-kpi-low-stock">0</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Items below threshold</span>
+        </div>
+      </div>
+
+      <!-- Seller Revenue Overview Chart -->
+      <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Revenue Performance</h3>
+            <p class="text-xs text-slate-500">Historical monthly sales earnings</p>
+          </div>
+          <span class="text-xs text-slate-400 font-mono">USD ($)</span>
+        </div>
+        <div class="h-60">
+          <canvas id="seller-revenue-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Seller Suborders Fulfillment Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Vendor Suborders Fulfillment</h3>
+            <p class="text-xs text-slate-500">Orders containing your store's inventory items</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Suborder ID</th>
+                <th class="py-3 px-3">Date</th>
+                <th class="py-3 px-3">Customer</th>
+                <th class="py-3 px-3">Items</th>
+                <th class="py-3 px-3 text-right">Your Earnings</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-center">Fulfill Action</th>
+              </tr>
+            </thead>
+            <tbody id="seller-orders-table-body" class="divide-y divide-slate-100">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Products Inventory Management Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Product Inventory & Catalog</h3>
+            <p class="text-xs text-slate-500">Real-time stock control and pricing</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Product</th>
+                <th class="py-3 px-3">SKU</th>
+                <th class="py-3 px-3 text-right">Regular Price</th>
+                <th class="py-3 px-3 text-right">Sale Price</th>
+                <th class="py-3 px-3 text-center">In-Stock</th>
+                <th class="py-3 px-3 text-center">Status</th>
+                <th class="py-3 px-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="seller-products-table-body" class="divide-y divide-slate-100">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 5: ADMIN OPERATIONS PORTAL           -->
+    <!-- ========================================== -->
+    <div id="view-admin-dashboard" class="hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-brand-600 uppercase tracking-wider">Operations Console</span>
+          <h2 class="text-xl font-extrabold text-slate-900 mt-0.5">Platform Administration</h2>
+          <p class="text-xs text-slate-500">Merchant verification, product moderation, and order dispute handling</p>
+        </div>
+        <button onclick="downloadSalesCSV()" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition flex items-center space-x-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Export Sales CSV</span>
+        </button>
+      </div>
+
+      <!-- Admin Platform KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Merchandise Value</span>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="adm-kpi-gmv">$0.00</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Platform Commission</span>
+          <div class="text-3xl font-extrabold text-brand-600 mt-2" id="adm-kpi-commission">$0.00</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Merchants</span>
+          <div class="text-3xl font-extrabold text-slate-900 mt-2" id="adm-kpi-sellers">0</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Approvals</span>
+          <div class="text-3xl font-extrabold text-amber-600 mt-2" id="adm-kpi-pending-approvals">0</div>
+        </div>
+      </div>
+
+      <!-- Pending Seller Applications Queue -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Pending Seller Onboarding Applications</h3>
+        <div id="admin-pending-sellers-list" class="space-y-3">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Products Moderation Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Catalog Moderation & Visibility</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Product Title</th>
+                <th class="py-3 px-3">Merchant</th>
+                <th class="py-3 px-3">Category</th>
+                <th class="py-3 px-3 text-right">Price</th>
+                <th class="py-3 px-3 text-center">Status</th>
+                <th class="py-3 px-3 text-center">Moderation Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-products-table-body" class="divide-y divide-slate-100">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Platform Orders & Dispute Resolution Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Platform Orders & Transaction Records</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Order ID</th>
+                <th class="py-3 px-3">Customer</th>
+                <th class="py-3 px-3">Date</th>
+                <th class="py-3 px-3 text-right">Total</th>
+                <th class="py-3 px-3">Payment</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-center">Admin Refund</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-table-body" class="divide-y divide-slate-100">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 6: SUPER ADMIN GOVERNANCE            -->
+    <!-- ========================================== -->
+    <div id="view-super-admin-dashboard" class="hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-brand-600 uppercase tracking-wider">Executive Governance</span>
+          <h2 class="text-xl font-extrabold text-slate-900 mt-0.5">Super Admin Platform Controls</h2>
+          <p class="text-xs text-slate-500">Configure global financial commission rates, administrators, and audit security</p>
+        </div>
+        <button onclick="openNewAdminModal()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition flex items-center space-x-1.5">
+          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+          <span>Provision Administrator</span>
+        </button>
+      </div>
+
+      <!-- Financial Commission & Platform Policy Configuration -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Platform Policies & Rate Configurations</h3>
+        
+        <form id="settings-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Standard Platform Commission (%)</label>
+            <input type="number" step="0.1" id="cfg-commission" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Sales Tax Rate (%)</label>
+            <input type="number" step="0.1" id="cfg-tax" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Flat Shipping Fee ($)</label>
+            <input type="number" step="0.01" id="cfg-shipping" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Free Shipping Order Threshold ($)</label>
+            <input type="number" step="0.01" id="cfg-free-ship-threshold" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Platform Name</label>
+            <input type="text" id="cfg-site-name" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Merchant Support Email</label>
+            <input type="email" id="cfg-support-email" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="md:col-span-3 pt-2">
+            <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition">
+              Save Global Platform Settings
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Staff Administrators List -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Provisioned Staff Administrators</h3>
+        <div id="superadmin-admins-list" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Audit Trail Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Platform Security & Audit Trail</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-y border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-3">Actor</th>
+                <th class="py-3 px-3">Action</th>
+                <th class="py-3 px-3">Resource</th>
+                <th class="py-3 px-3">Payload Data</th>
+              </tr>
+            </thead>
+            <tbody id="superadmin-audit-table-body" class="divide-y divide-slate-100 font-mono text-[11px]">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 1: SHOPPING CART DRAWER              -->
+  <!-- ========================================== -->
+  <div id="cart-drawer-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden transition-opacity">
+    <div class="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col justify-between z-50">
+      
+      <!-- Drawer Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-600"></i>
+          <h2 class="text-base font-bold text-slate-900">Your Shopping Cart</h2>
+        </div>
+        <button onclick="closeCartDrawer()" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Drawer Items Feed -->
+      <div id="cart-drawer-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Drawer Summary Footer -->
+      <div class="p-6 border-t border-slate-200 bg-slate-50/50 space-y-3">
+        <!-- Coupon Form -->
+        <div class="flex space-x-2">
+          <input type="text" id="cart-coupon-input" placeholder="Coupon (e.g. WELCOME10)" class="flex-1 uppercase bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-brand-500">
+          <button onclick="applyCartCoupon()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition">Apply</button>
+        </div>
+
+        <div class="space-y-1 text-xs text-slate-600">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span id="cart-subtotal" class="font-semibold text-slate-900">$0.00</span>
+          </div>
+          <div class="flex justify-between" id="cart-discount-row">
+            <span>Coupon Discount:</span>
+            <span id="cart-discount" class="font-semibold text-emerald-600">-$0.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Estimated Shipping:</span>
+            <span id="cart-shipping" class="font-semibold text-slate-900">$0.00</span>
+          </div>
+          <div class="flex justify-between border-t border-slate-200 pt-2 text-sm font-extrabold text-slate-900">
+            <span>Total Payable:</span>
+            <span id="cart-grand-total" class="text-brand-600">$0.00</span>
+          </div>
+        </div>
+
+        <button onclick="openCheckoutModal()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center space-x-2">
+          <span>Proceed to Checkout</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 2: MULTI-STEP CHECKOUT               -->
+  <!-- ========================================== -->
+  <div id="modal-checkout" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-brand-600 uppercase tracking-wider">Fast & Secure</span>
+          <h3 class="text-lg font-bold text-slate-900">Order Checkout</h3>
+        </div>
+        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Checkout Form -->
+      <form id="checkout-form" class="space-y-6 text-xs">
+        
+        <!-- Step 1: Shipping Address -->
+        <div class="space-y-3">
+          <span class="font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px]">1</span>
+            <span>Shipping Address</span>
+          </span>
+
+          <div id="checkout-addresses-list" class="space-y-2">
+            <!-- Injected via JS -->
+          </div>
+
+          <div class="p-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 space-y-2" id="checkout-new-address-section">
+            <span class="font-semibold text-slate-700 block">Or Ship to a New Address:</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="chk-name" placeholder="Full Name" class="bg-white border border-slate-200 rounded-lg p-2 text-xs">
+              <input type="text" id="chk-phone" placeholder="Phone Number" class="bg-white border border-slate-200 rounded-lg p-2 text-xs">
+            </div>
+            <input type="text" id="chk-addr1" placeholder="Address Line 1" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs">
+            <div class="grid grid-cols-3 gap-2">
+              <input type="text" id="chk-city" placeholder="City" class="bg-white border border-slate-200 rounded-lg p-2 text-xs">
+              <input type="text" id="chk-state" placeholder="State / Province" class="bg-white border border-slate-200 rounded-lg p-2 text-xs">
+              <input type="text" id="chk-zip" placeholder="Postal Code" class="bg-white border border-slate-200 rounded-lg p-2 text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Payment Method Selection -->
+        <div class="space-y-3 pt-4 border-t border-slate-100">
+          <span class="font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px]">2</span>
+            <span>Payment Method</span>
+          </span>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="payment-methods-grid">
+            
+            <label class="payment-method-card p-3 rounded-xl border border-slate-200 hover:border-brand-500 cursor-pointer flex items-center space-x-3 transition">
+              <input type="radio" name="payment_method" value="stripe" checked class="text-brand-600 focus:ring-brand-500">
+              <div>
+                <span class="font-bold text-slate-900 block">Credit / Debit Card (Stripe)</span>
+                <span class="text-[10px] text-slate-500">Instant verification via tokenized gateway</span>
+              </div>
+            </label>
+
+            <label class="payment-method-card p-3 rounded-xl border border-slate-200 hover:border-brand-500 cursor-pointer flex items-center space-x-3 transition">
+              <input type="radio" name="payment_method" value="cod" class="text-brand-600 focus:ring-brand-500">
+              <div>
+                <span class="font-bold text-slate-900 block">Cash On Delivery (COD)</span>
+                <span class="text-[10px] text-slate-500">Pay cash upon home parcel delivery</span>
+              </div>
+            </label>
+
+            <label class="payment-method-card p-3 rounded-xl border border-slate-200 hover:border-brand-500 cursor-pointer flex items-center space-x-3 transition">
+              <input type="radio" name="payment_method" value="sslcommerz" class="text-brand-600 focus:ring-brand-500">
+              <div>
+                <span class="font-bold text-slate-900 block">SSLCommerz (Mobile / Net Banking)</span>
+                <span class="text-[10px] text-slate-500">bKash, Nagad, Rocket, or direct bank</span>
+              </div>
+            </label>
+
+            <label class="payment-method-card p-3 rounded-xl border border-slate-200 hover:border-brand-500 cursor-pointer flex items-center space-x-3 transition">
+              <input type="radio" name="payment_method" value="bank_transfer" class="text-brand-600 focus:ring-brand-500">
+              <div>
+                <span class="font-bold text-slate-900 block">Direct Wire / Bank Deposit</span>
+                <span class="text-[10px] text-slate-500">Manual wire with receipt upload</span>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Order Summary & Confirmation Button -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-600">Final Order Amount:</span>
+            <span id="checkout-final-amount" class="text-base font-extrabold text-brand-600">$0.00</span>
+          </div>
+          <p class="text-[11px] text-slate-500">By placing this order you agree to Bazaarly's standard multi-vendor buyer protection terms.</p>
+        </div>
+
+        <button type="submit" id="btn-submit-order" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md transition">
+          Confirm & Place Multi-Vendor Order
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 3: ORDER SUCCESS & INVOICE           -->
+  <!-- ========================================== -->
+  <div id="modal-order-success" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl text-center space-y-5">
+      <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200">
+        <i data-lucide="check" class="w-8 h-8"></i>
+      </div>
+
+      <div class="space-y-1">
+        <h3 class="text-xl font-extrabold text-slate-900">Order Placed Successfully!</h3>
+        <p class="text-xs text-slate-500">Your multi-vendor order has been confirmed and dispatched to our merchants.</p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-left space-y-1.5 font-mono">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Order ID:</span>
+          <span id="success-order-number" class="font-bold text-slate-900">--</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Tracking Code:</span>
+          <span id="success-tracking-number" class="font-bold text-brand-600">--</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Total Charged:</span>
+          <span id="success-total-charged" class="font-bold text-slate-900">--</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3 text-xs">
+        <button onclick="viewCustomerOrders()" class="flex-1 py-2.5 rounded-xl bg-brand-600 text-white font-bold shadow-xs hover:bg-brand-700 transition">
+          Track in My Orders
+        </button>
+        <button onclick="printOrderInvoice()" class="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition flex items-center justify-center space-x-1">
+          <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-600"></i>
+          <span>Print Receipt</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 4: AUTHENTICATION / LOGIN            -->
+  <!-- ========================================== -->
+  <div id="modal-auth" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Account Access</h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="auth-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Email Address</label>
+          <input type="email" id="auth-email" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Password</label>
+          <input type="password" id="auth-password" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
+          Sign In
+        </button>
+      </form>
+
+      <div class="pt-2 border-t border-slate-100 text-center">
+        <span class="text-[11px] text-slate-400 block mb-2">Or switch immediately using demo accounts:</span>
+        <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+          <button onclick="switchRole('customer')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Customer</button>
+          <button onclick="switchRole('seller')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Seller</button>
+          <button onclick="switchRole('admin')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Admin</button>
+          <button onclick="switchRole('super_admin')" class="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Super Admin</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 5: SELLER ADD PRODUCT                -->
+  <!-- ========================================== -->
+  <div id="modal-add-product" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Add New Product to Store Catalog</h3>
+        <button onclick="closeAddProductModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="add-product-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Product Title</label>
+          <input type="text" id="new-prod-title" required placeholder="e.g. Mechanical Wireless Keyboard" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Department Category</label>
+            <select id="new-prod-cat" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+              <option value="cat-electronics">Electronics & Audio</option>
+              <option value="cat-fashion">Fashion & Apparel</option>
+              <option value="cat-home">Home & Lifestyle</option>
+              <option value="cat-sports">Sports & Fitness</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">SKU Code</label>
+            <input type="text" id="new-prod-sku" required placeholder="e.g. KB-RGB-99" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Regular Price ($)</label>
+            <input type="number" step="0.01" id="new-prod-regular-price" required placeholder="149.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Sale Price ($)</label>
+            <input type="number" step="0.01" id="new-prod-sale-price" required placeholder="119.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Initial Stock Units</label>
+            <input type="number" id="new-prod-stock" required value="25" min="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Primary Image URL</label>
+          <input type="url" id="new-prod-image" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Technical Description</label>
+          <textarea id="new-prod-desc" rows="3" required placeholder="Describe product specifications, materials, and warranty..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
+          Publish Product to Marketplace
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 6: SELLER PAYOUT REQUEST             -->
+  <!-- ========================================== -->
+  <div id="modal-payout" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Request Merchant Withdrawal</h3>
+        <button onclick="closePayoutModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="payout-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Withdrawal Amount ($)</label>
+          <input type="number" step="0.01" id="payout-amount" required placeholder="e.g. 500.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Bank Account & Routing Info</label>
+          <input type="text" id="payout-bank" required value="Chase Bank • AC-9876543210" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Notes</label>
+          <input type="text" id="payout-notes" placeholder="e.g. Weekly settlement" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">
+          Submit Payout Request
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 7: PRODUCT REVIEW MODAL              -->
+  <!-- ========================================== -->
+  <div id="modal-review" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Write a Product Review</h3>
+        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="review-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Rating</label>
+          <select id="rev-rating" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900">
+            <option value="5">⭐⭐⭐⭐⭐ 5 Stars - Exceptional</option>
+            <option value="4">⭐⭐⭐⭐ 4 Stars - Very Good</option>
+            <option value="3">⭐⭐⭐ 3 Stars - Average</option>
+            <option value="2">⭐⭐ 2 Stars - Below Expectations</option>
+            <option value="1">⭐ 1 Star - Poor</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Headline</label>
+          <input type="text" id="rev-title" required placeholder="e.g. Outstanding build quality and comfort" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900">
+        </div>
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Detailed Review</label>
+          <textarea id="rev-comment" rows="3" required placeholder="Share your experience with this item..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold transition">
+          Submit Review
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL 8: PRINTABLE INVOICE MODAL           -->
+  <!-- ========================================== -->
+  <div id="printable-invoice-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto" id="invoice-sheet">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+
+  <!-- Sticky Footer -->
+  <footer class="border-t border-slate-200 mt-auto py-8 bg-white text-xs text-slate-500 shrink-0">
+    <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div>
+        <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm mb-3">
+          <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-600"></i>
+          <span>Bazaarly</span>
+        </div>
+        <p class="text-[11px] leading-relaxed text-slate-400">
+          Enterprise multi-vendor eCommerce ecosystem with verified independent merchants, unified tracking, and buyer security.
+        </p>
+      </div>
+      <div>
+        <span class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block mb-3">Storefront</span>
+        <ul class="space-y-1.5 text-[11px] text-slate-500">
+          <li><a href="#" onclick="navigateTo('storefront')" class="hover:text-brand-600">All Products</a></li>
+          <li><a href="#" onclick="filterByCategory('electronics')" class="hover:text-brand-600">Consumer Electronics</a></li>
+          <li><a href="#" onclick="filterByCategory('fashion')" class="hover:text-brand-600">Fashion Apparel</a></li>
+          <li><a href="#" onclick="filterByCategory('home-lifestyle')" class="hover:text-brand-600">Home & Lifestyle</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block mb-3">Merchant Hub</span>
+        <ul class="space-y-1.5 text-[11px] text-slate-500">
+          <li><a href="#" onclick="navigateTo('seller-dashboard')" class="hover:text-brand-600">Seller Dashboard</a></li>
+          <li><a href="#" onclick="openAddProductModal()" class="hover:text-brand-600">Catalog Management</a></li>
+          <li><a href="#" onclick="switchRole('seller')" class="hover:text-brand-600">Merchant Payouts</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block mb-3">Governance</span>
+        <ul class="space-y-1.5 text-[11px] text-slate-500">
+          <li><a href="#" onclick="navigateTo('admin-dashboard')" class="hover:text-brand-600">Operations Admin</a></li>
+          <li><a href="#" onclick="navigateTo('super-admin-dashboard')" class="hover:text-brand-600">Super Admin Policy</a></li>
+          <li><a href="#" onclick="downloadSalesCSV()" class="hover:text-brand-600">Export Financial CSV</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400">
+      <span>© 2026 Bazaarly Inc. All rights reserved. Built with clean architecture, SQLite WAL, and multi-gateway abstractions.</span>
+      <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+        <span>Privacy Policy</span>
+        <span>•</span>
+        <span>Terms of Service</span>
+        <span>•</span>
+        <span>PCI-DSS Compliant</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
