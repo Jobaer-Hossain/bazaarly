@@ -39,9 +39,9 @@ const state = {
   catalogFilters: {}
 };
 
-// Bangla Currency & Numeral Formatter (BDT ৳)
+// BDT English Currency & Numeral Formatter
 function formatPrice(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return '৳০.০০';
+  if (amount === null || amount === undefined || isNaN(amount)) return 'BDT 0.00';
   const n = Number(amount);
   const isNegative = n < 0;
   const absVal = Math.abs(n).toFixed(2);
@@ -50,14 +50,7 @@ function formatPrice(amount) {
   const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const fullStr = `${formattedInt}.${decPart}`;
 
-  const banglaDigits = {
-    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
-    '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯',
-    '.': '.', ',': ','
-  };
-
-  const banglaNum = fullStr.split('').map(c => banglaDigits[c] || c).join('');
-  return (isNegative ? '-৳' : '৳') + banglaNum;
+  return (isNegative ? '-BDT ' : 'BDT ') + fullStr;
 }
 
 // API Helper
