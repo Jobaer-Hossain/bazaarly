@@ -334,7 +334,7 @@ async function loadMoreProducts() {
   const btn = document.getElementById('btn-see-more');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin text-brand-600"></i><span>Loading next 20 items...</span>`;
+    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin text-brand-600"></i><span>Loading more products...</span>`;
     lucide.createIcons();
   }
 
@@ -343,7 +343,7 @@ async function loadMoreProducts() {
 
   if (btn) {
     btn.disabled = false;
-    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i><span>See More Products (+20)</span>`;
+    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4 text-brand-600 group-hover:translate-y-0.5 transition"></i><span>See More Products</span>`;
     lucide.createIcons();
   }
   state.catalogLoading = false;
