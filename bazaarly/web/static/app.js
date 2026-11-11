@@ -528,9 +528,22 @@ async function viewProductDetails(productId) {
     const container = document.getElementById('product-detail-container');
     if (!container) return;
 
-    const hasDiscount = product.sale_price && product.sale_price < product.regular_price;
+    const basePrice = (product.sale_price !== null && product.sale_price !== undefined && Number(product.sale_price) > 0)
+      ? Number(product.sale_price)
+      : Number(product.regular_price || 0);
+
+    const hasDiscount = product.sale_price && product.regular_price && (Number(product.sale_price) < Number(product.regular_price));
     const discountPct = hasDiscount ? Math.round(((product.regular_price - product.sale_price) / product.regular_price) * 100) : 0;
-    const currentPrice = state.selectedVariant ? state.selectedVariant.price : (product.sale_price || product.regular_price);
+
+    let currentPrice = basePrice;
+    if (state.selectedVariant) {
+      const vp = (state.selectedVariant.price !== undefined && state.selectedVariant.price !== null)
+        ? Number(state.selectedVariant.price)
+        : (state.selectedVariant.price_override !== undefined && state.selectedVariant.price_override !== null ? Number(state.selectedVariant.price_override) : null);
+      if (vp !== null && !isNaN(vp) && vp > 0) {
+        currentPrice = vp;
+      }
+    }
     const stockAvailable = state.selectedVariant ? state.selectedVariant.stock_quantity : product.stock_quantity;
 
     const images = (product.images && product.images.length > 0) 
@@ -600,11 +613,17 @@ async function viewProductDetails(productId) {
           <div class="space-y-2">
             <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block">Select Configuration:</span>
             <div class="flex flex-wrap gap-2" id="detail-variants-container">
-              ${product.variants.map((v, i) => `
-                <button onclick="selectProductVariant('${v.id}')" id="variant-btn-${v.id}" class="variant-pill px-3 py-2 rounded-xl border text-xs font-semibold transition ${i === 0 ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-xs' : 'border-slate-200 text-slate-700 hover:border-slate-300'}">
-                  ${v.variant_name} — ${formatPrice(v.price)}
-                </button>
-              `).join('')}
+              ${product.variants.map((v, i) => {
+                const vName = v.variant_name || v.title || v.attribute_value || `Option ${i + 1}`;
+                const vp = (v.price !== undefined && v.price !== null)
+                  ? Number(v.price)
+                  : (v.price_override !== undefined && v.price_override !== null ? Number(v.price_override) : basePrice);
+                return `
+                  <button onclick="selectProductVariant('${v.id}')" id="variant-btn-${v.id}" class="variant-pill px-3 py-2 rounded-xl border text-xs font-semibold transition ${i === 0 ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-xs' : 'border-slate-200 text-slate-700 hover:border-slate-300'}">
+                    ${vName} — ${formatPrice(vp)}
+                  </button>
+                `;
+              }).join('')}
             </div>
           </div>
         ` : ''}
@@ -681,8 +700,15 @@ function selectProductVariant(variantId) {
   }
 
   // Update Price & Stock
+  const basePrice = (state.currentProduct.sale_price !== null && state.currentProduct.sale_price !== undefined && Number(state.currentProduct.sale_price) > 0)
+    ? Number(state.currentProduct.sale_price)
+    : Number(state.currentProduct.regular_price || 0);
+  const vp = (variant.price !== undefined && variant.price !== null)
+    ? Number(variant.price)
+    : (variant.price_override !== undefined && variant.price_override !== null ? Number(variant.price_override) : basePrice);
+
   const priceEl = document.getElementById('detail-current-price');
-  if (priceEl) priceEl.textContent = formatPrice(variant.price);
+  if (priceEl) priceEl.textContent = formatPrice(vp);
 
   const stockBadge = document.getElementById('detail-stock-badge');
   if (stockBadge) {

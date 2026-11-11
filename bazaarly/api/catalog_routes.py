@@ -167,6 +167,12 @@ def get_product_details(product_id: str):
     ORDER BY title ASC;
     """, (product["id"],))
 
+    # Normalize variant fields for frontend presentation
+    base_prod_price = product.get("sale_price") or product.get("regular_price") or 0.0
+    for v in variants:
+        v["price"] = v["price_override"] if (v.get("price_override") is not None and v.get("price_override") > 0) else base_prod_price
+        v["variant_name"] = v.get("title") or v.get("attribute_value") or "Standard Option"
+
     # Recent reviews
     reviews = query_db("""
     SELECT r.*, u.full_name as author_name
