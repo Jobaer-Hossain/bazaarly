@@ -9,3 +9,19 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+
+# AI assistant artifacts & rules
+*.ai.md
+ai.md
+AI.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.cline/
+.clinerules
+.aider*
+.claude/
+CLAUDE.md
+copilot-instructions.md
+
