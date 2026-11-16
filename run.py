@@ -23,11 +23,9 @@ def main():
     parser.add_argument("--reload", action="store_true", help="Enable live auto-reloading")
     args = parser.parse_args()
 
-    print(f"================================================================")
-    print(f"  🛒 Starting Bazaarly Multi-Vendor Platform on port {args.port}")
-    print(f"  👉 Customer Storefront: http://localhost:{args.port}/")
-    print(f"  📖 Interactive Swagger: http://localhost:{args.port}/docs")
-    print(f"================================================================")
+    print(f"Starting Bazaarly on port {args.port}")
+    print(f"Storefront: http://localhost:{args.port}/")
+    print(f"API Docs: http://localhost:{args.port}/docs")
 
     uvicorn.run("bazaarly.api.server:app", host=args.host, port=args.port, reload=args.reload)
 

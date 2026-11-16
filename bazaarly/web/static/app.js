@@ -1,6 +1,5 @@
 /**
- * Bazaarly — Enterprise Multi-Vendor eCommerce Platform
- * Client Application Logic
+ * Bazaarly Client Application Logic
  */
 
 // Global State
@@ -65,7 +64,6 @@ async function api(endpoint, options = {}) {
     const res = await fetch(endpoint, { ...options, headers });
     if (res.status === 401) {
       console.warn('Unauthorized request (401) on', endpoint);
-      // Clean up invalid session without auto-switching demo
       state.token = '';
       state.currentUser = null;
       localStorage.removeItem('bazaarly_token');

@@ -1,111 +1,104 @@
-# Bazaarly — Enterprise Multi-Vendor eCommerce Platform
+# Bazaarly
 
-Bazaarly is a modern, production-grade, multi-vendor eCommerce ecosystem designed for high performance, transactional safety, and strict separation of concerns across multiple merchants and administrators.
+A multi-vendor eCommerce marketplace platform built with FastAPI, SQLite, and vanilla modern JavaScript.
 
----
+## Features
 
-## 🌟 Key Architecture & Technical Highlights
+- **Storefront & Catalog:** Product browsing with category filters, variant selection (size, color, storage), search, and pagination.
+- **Cart & Checkout:** Server-calculated pricing, coupon discounts, shipping rules, and multi-step checkout.
+- **Multi-Vendor Orders:** Atomic stock reservation, automated splitting of customer orders into individual merchant suborders, and per-vendor order fulfillment.
+- **Role-Based Portals:**
+  - **Customer:** Product browsing, persistent cart, order tracking, printable invoices, and reviews.
+  - **Seller:** Store catalog management, SKU and inventory control, suborder fulfillment, and revenue analytics.
+  - **Admin:** Merchant approvals, catalog moderation, dispute resolution, and sales reporting.
+  - **Super Admin:** Commission configurations, platform policy settings, and staff administrator management.
+- **Payment Drivers:** Interface supporting Card (Stripe), Cash on Delivery, Net Banking, and Bank Transfer.
 
-- **Backend:** FastAPI (Python 3.13) with asynchronous request handlers, strict Pydantic v2 domain schemas, and clean architectural separation.
-- **Database:** SQLite running in **WAL (Write-Ahead Logging)** mode with `PRAGMA foreign_keys = ON;`, atomic suborder splitting, and transactional inventory decrement.
-- **Role-Based Portals (RBAC):** Strict JWT token authentication with 4 dedicated roles:
-  1. **Customer:** Storefront browsing, variant selection, persistent cart, coupon engine, multi-gateway checkout, order tracking, printable invoices, and verified reviews.
-  2. **Seller (Merchant):** Store catalog CRUD, SKU and variant control, inventory decrement alerts, vendor suborders management, monthly revenue Chart.js analytics, and payout withdrawals.
-  3. **Operations Admin:** Merchant application approval/rejection, catalog moderation, global order auditing, dispute resolution & transaction refunds, and CSV sales exports.
-  4. **Super Admin:** Executive governance, platform commission rate configuration, sales tax & shipping policy controls, staff administrator provisioning, and immutable audit logging.
-- **Multi-Gateway Payment Layer:** Abstracted payment drivers supporting **Stripe (Card)**, **Cash On Delivery (COD)**, **SSLCommerz (Mobile/Net Banking)**, and **Direct Bank Transfer**.
-- **Frontend UI/UX:** Clean, modern white theme (`#FFFFFF` primary, `#F8FAFC` secondary, `#111827` dark charcoal text, `#2563EB` modern blue accent) built with Tailwind CSS, Lucide Icons, and Chart.js.
+## Getting Started
 
----
+### Prerequisites
 
-## 👥 Demo Accounts & One-Click Switching
+- Python 3.10+
+- pip
 
-The platform includes a built-in **Role Switcher Pill** in the header navigation that allows instantaneous switching between all 4 personas without manual login forms:
+### Installation
 
-| Role | Demo Email | Password | Primary Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Customer** | `john.doe@example.com` | `password123` | Browsing, cart, checkout, tracking, reviews |
-| **Customer (Alt)** | `jane.smith@example.com` | `password123` | Active orders, address management |
-| **Seller (Approved)**| `techstore@bazaarly.com` | `password123` | Nexus Electronics store manager, order fulfillment |
-| **Seller (Fashion)** | `fashionhub@bazaarly.com`| `password123` | Urban Weave Apparel inventory manager |
-| **Seller (Pending)** | `gadgetverse@bazaarly.com`| `password123`| Pending application awaiting Admin review |
-| **Operations Admin**| `admin@bazaarly.com` | `password123` | Merchant onboarding, catalog moderation, dispute refunds |
-| **Super Admin** | `superadmin@bazaarly.com` | `password123`| Global commission rates, audit logs, staff provisioning |
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Jobaer-Hossain/bazaarly.git
+   cd bazaarly
+   ```
 
----
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 🛍️ Complete eCommerce Workflow
+### Running the Application
 
-```mermaid
-flowchart LR
-    A["Catalog Browsing"] --> B["Select Variants & Quantity"]
-    B --> C["Add to Cart & Apply Coupon"]
-    C --> D["Multi-Step Checkout"]
-    D --> E["Payment Execution (Stripe/COD/SSL)"]
-    E --> F["Atomic Stock Reservation"]
-    F --> G["Split Suborders Per Merchant"]
-    G --> H["Merchant Fulfillment & Packing"]
-    H --> I["Unified Customer Delivery & Reviews"]
-```
-
-1. **Product Selection & Stock Verification:** Real-time stock checks on variants (Color, Size, Storage).
-2. **Shopping Cart & Coupons:** Server-side price recalculation prevents client-side tampering. Supports percentage (`WELCOME10` - 10% off) and flat discounts (`BAZAAR50` - $50 off).
-3. **Multi-Vendor Suborder Splitting:** When an order contains items from multiple sellers (e.g. Nexus Electronics and Urban Weave), the backend creates individual `seller_orders` records. Each vendor only views and updates items from their own warehouse.
-4. **Dispute Resolution & Inventory Replenishment:** When an administrator or customer cancels or refunds an order, inventory quantities are atomically returned to the catalog.
-
----
-
-## 🚀 Quickstart & Server Execution
-
-### 1. Run Server
-From the project directory:
+Start the local server:
 ```bash
 python run.py --port 8005
 ```
 
-### 2. Access the Application
-- **Customer Storefront & Portals:** [http://localhost:8005/](http://localhost:8005/)
-- **Interactive Swagger REST API:** [http://localhost:8005/docs](http://localhost:8005/docs)
-- **Health Check Status:** [http://localhost:8005/api/status](http://localhost:8005/api/status)
+Once running:
+- **Web App:** http://localhost:8005/
+- **API Documentation:** http://localhost:8005/docs
+- **Health Check:** http://localhost:8005/api/status
 
-### 3. Run Automated Tests
+### Test Accounts
+
+The database comes pre-seeded with accounts for testing different roles:
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| Customer | `john.doe@example.com` | `password123` |
+| Seller | `techstore@bazaarly.com` | `password123` |
+| Admin | `admin@bazaarly.com` | `password123` |
+| Super Admin | `superadmin@bazaarly.com` | `password123` |
+
+## Running Tests
+
+Run the automated test suite with unittest:
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 bazaarly/
 ├── bazaarly/
 │   ├── api/
 │   │   ├── admin_routes.py         # Merchant approvals, disputes, CSV export
-│   │   ├── auth_routes.py          # JWT login, registration, role switcher
-│   │   ├── cart_routes.py          # Cart CRUD, persistent totals, coupons
+│   │   ├── auth_routes.py          # Authentication, token generation, user roles
+│   │   ├── cart_routes.py          # Cart operations, pricing calculations, coupons
 │   │   ├── catalog_routes.py       # Products search, categories, reviews
-│   │   ├── order_routes.py         # Checkout, multi-vendor suborders
+│   │   ├── order_routes.py         # Checkout, order splitting, fulfillment
 │   │   ├── seller_routes.py        # Merchant inventory, orders, revenue
-│   │   ├── super_admin_routes.py   # Global rates, staff admins, audit trail
-│   │   └── server.py               # FastAPI application & static mount
+│   │   ├── super_admin_routes.py   # Global settings, staff accounts, audit logs
+│   │   └── server.py               # FastAPI application setup and routing
 │   ├── core/
-│   │   ├── inventory.py            # Atomic stock reservation engine
-│   │   ├── models.py               # Pydantic v2 request/response schemas
-│   │   ├── payments.py             # Multi-provider payment gateway driver
-│   │   └── security.py             # JWT token generation & RBAC guards
+│   │   ├── inventory.py            # Stock allocation and replenishment logic
+│   │   ├── models.py               # Domain schemas and validation models
+│   │   ├── payments.py             # Payment gateway abstractions
+│   │   └── security.py             # JWT token handling and RBAC helpers
 │   ├── db/
-│   │   └── database.py             # SQLite WAL schema & comprehensive seed data
+│   │   └── database.py             # Database connection, schemas, and initial seed
 │   └── web/
 │       └── static/
-│           ├── app.js              # Client application state & event handlers
-│           ├── index.html          # Responsive single-page application
-│           └── styles.css          # Custom typography and print invoice styling
+│           ├── app.js              # Frontend application logic
+│           ├── index.html          # Single-page interface
+│           └── styles.css          # Styles and print layouts
 ├── data/
-│   └── bazaarly.db                 # Persistent SQLite database
+│   └── bazaarly.db                 # SQLite database
 ├── tests/
-│   └── test_ecommerce_flows.py     # 8 automated end-to-end test cases
-├── requirements.txt                # Dependencies specification
-├── run.py                          # Application entry point runner
-└── README.md                       # System documentation
+│   └── test_ecommerce_flows.py     # End-to-end flow tests
+├── requirements.txt
+├── run.py
+└── README.md
 ```
+
+## License
+
+MIT

@@ -1,6 +1,6 @@
 """
 Bazaarly Shopping Cart & Wishlist API Routes
-Server-side price recalculation and atomic stock checks. Never trusts client totals.
+Handles cart items, subtotal recalculation, and stock availability checks.
 """
 
 import uuid

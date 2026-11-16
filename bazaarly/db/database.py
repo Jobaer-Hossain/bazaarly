@@ -563,20 +563,20 @@ def seed_data():
         ]
         cursor.executemany("INSERT INTO system_settings (key, value) VALUES (?, ?);", settings)
 
-        # Users & Demo Accounts
-        demo_users = [
-            ("usr-superadmin", "superadmin@bazaarly.com", hash_password("password123"), "Platform Executive (Super Admin)", "+15550000001", "super_admin", "active"),
-            ("usr-admin", "admin@bazaarly.com", hash_password("password123"), "Operations Lead (Admin)", "+15550000002", "admin", "active"),
-            ("usr-seller-tech", "techstore@bazaarly.com", hash_password("password123"), "Marcus Vance (Nexus Tech)", "+15550000003", "seller", "active"),
-            ("usr-seller-fashion", "fashionhub@bazaarly.com", hash_password("password123"), "Elena Rostova (Urban Weave)", "+15550000004", "seller", "active"),
-            ("usr-seller-pending", "gadgetverse@bazaarly.com", hash_password("password123"), "Arif Chowdhury (GadgetVerse)", "+8801700000001", "seller", "pending"),
+        # Users
+        users = [
+            ("usr-superadmin", "superadmin@bazaarly.com", hash_password("password123"), "Platform Admin", "+15550000001", "super_admin", "active"),
+            ("usr-admin", "admin@bazaarly.com", hash_password("password123"), "Operations Admin", "+15550000002", "admin", "active"),
+            ("usr-seller-tech", "techstore@bazaarly.com", hash_password("password123"), "Marcus Vance", "+15550000003", "seller", "active"),
+            ("usr-seller-fashion", "fashionhub@bazaarly.com", hash_password("password123"), "Elena Rostova", "+15550000004", "seller", "active"),
+            ("usr-seller-pending", "gadgetverse@bazaarly.com", hash_password("password123"), "Arif Chowdhury", "+8801700000001", "seller", "pending"),
             ("usr-customer-john", "john.doe@example.com", hash_password("password123"), "Johnathan Doe", "+15551234567", "customer", "active"),
             ("usr-customer-jane", "jane.smith@example.com", hash_password("password123"), "Jane Smith", "+15559876543", "customer", "active"),
         ]
         cursor.executemany("""
         INSERT INTO users (id, email, password_hash, full_name, phone, role, status)
         VALUES (?, ?, ?, ?, ?, ?, ?);
-        """, demo_users)
+        """, users)
 
         # Seller Profiles
         seller_profiles = [

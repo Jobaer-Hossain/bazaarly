@@ -85,12 +85,12 @@ def get_current_user_profile(user: dict = Depends(get_current_user)):
 
 @router.get("/demo-users")
 def get_demo_users():
-    """Lists the pre-configured role test accounts for quick evaluation."""
+    """Lists available test accounts."""
     return [
-        {"role": "customer", "email": "john.doe@example.com", "name": "Johnathan Doe (Customer)"},
-        {"role": "seller", "email": "techstore@bazaarly.com", "name": "Marcus Vance (Nexus Tech Store)"},
-        {"role": "admin", "email": "admin@bazaarly.com", "name": "Operations Lead (Admin)"},
-        {"role": "super_admin", "email": "superadmin@bazaarly.com", "name": "Platform Executive (Super Admin)"},
+        {"role": "customer", "email": "john.doe@example.com", "name": "Johnathan Doe"},
+        {"role": "seller", "email": "techstore@bazaarly.com", "name": "Marcus Vance"},
+        {"role": "admin", "email": "admin@bazaarly.com", "name": "Operations Admin"},
+        {"role": "super_admin", "email": "superadmin@bazaarly.com", "name": "Platform Admin"},
     ]
 
 
